@@ -5,7 +5,7 @@
 <!-- Blocks every network request: the page cannot upload or download anything. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:; base-uri 'none'; form-action 'none'" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Guyanonymous' Prompt Studio v3</title>
+<title>Guyanonymous' Prompt Studio v3.1</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -275,7 +275,7 @@
   <div class="brand">
     <div class="brand-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
     <div>
-      <h1>Guyanonymous' Prompt Studio <span class="badge badge-indigo">v3</span> <span class="badge badge-active">Offline</span></h1>
+      <h1>Guyanonymous' Prompt Studio <span class="badge badge-indigo">v3.1</span> <span class="badge badge-active">Offline</span></h1>
       <p>Nothing is uploaded. The page can only read and write folders you choose.</p>
     </div>
   </div>
@@ -1967,7 +1967,7 @@ const PROFILE_DEFAULTS = [
   { id: 'flux2', name: 'FLUX.2 dev / klein', family: 'LLM-encoder natural language', tok: 'llm', rec: 400, hard: 512, chunk: 0, weights: 'no', neg: 'no', style: 'sentences', conf: 'verified', note: 'Max sequence length 512 tokens (Mistral3 or Qwen3 encoder).' },
   { id: 'krea2', name: 'Krea 2', family: 'LLM-encoder natural language', tok: 'llm', rec: 512, hard: 640, chunk: 0, weights: 'unsure', neg: 'weak', style: 'sentences', conf: 'estimate', note: 'Qwen3-VL encoder; reference length 512. A ComfyUI bug report saw corrupted output beyond about 640 tokens, yet many people run 800-1100 words successfully. ComfyUI does not cap prompts; other frontends may. Test a detail placed at the very end. Weight support is disputed.' },
   { id: 'krea3', name: 'Krea 3 (hosted)', family: 'Hosted natural language', tok: 'hosted', rec: 512, hard: null, chunk: 0, weights: 'no', neg: 'unsure', style: 'sentences', conf: 'unverified', note: 'Editing-focused partner node; no prompt limit stated. Krea rewrites prompts, so seeds do not reproduce images. References use @Image1, @Image2.' },
-  { id: 'moss', name: 'MOSS-Image', family: 'LLM-encoder natural language', tok: 'llm', rec: 1500, hard: 4096, chunk: 0, weights: 'unsure', neg: 'yes', style: 'sentences', conf: 'verified', note: 'Qwen3.5 9B encoder, accepts about 4K tokens. Natural-language captions; Base also accepts ordered tags; JSON layout prompts. Keep the negative short.' },
+  { id: 'moss', name: 'MOSS-Image', family: 'LLM-encoder natural language', tok: 'llm', rec: 3000, hard: 4000, chunk: 0, weights: 'unsure', neg: 'yes', style: 'sentences', conf: 'verified', note: 'Qwen3.5 9B encoder, handles about 4,000 tokens. Natural-language captions; Base also accepts ordered tags; JSON layout prompts. Keep the negative short.' },
   { id: 'zimage', name: 'Z-Image Turbo', family: 'LLM-encoder natural language', tok: 'llm', rec: 512, hard: 1024, chunk: 0, weights: 'no', neg: 'no', style: 'sentences', conf: 'verified', note: '512 tokens by default, raisable to 1024. Dense 100-180 word paragraphs work well. Negatives are ignored at low CFG.' },
   { id: 'qwen', name: 'Qwen-Image', family: 'LLM-encoder natural language', tok: 'llm', rec: 512, hard: 1024, chunk: 0, weights: 'unsure', neg: 'yes', style: 'sentences', conf: 'estimate', note: 'Qwen2.5-VL encoder; no exact limit found.' },
   { id: 'ming', name: 'Ming Image (design)', family: 'LLM-encoder natural language', tok: 'llm', rec: 512, hard: 1024, chunk: 0, weights: 'unsure', neg: 'unsure', style: 'sentences', conf: 'unverified', note: 'Layouts with lots of text. Describe section by section, put text to render in quotes.' },
@@ -2212,7 +2212,7 @@ function serializeRecords(part, fmt, startN) {
   if (fmt === 'csv') return '﻿' + ['n,seed,prompt,negative,picks'].concat(part.map((r, i) => [startN + i, r.seed, r.prompt, r.negative, r.picks.map(p => p.name + '=' + p.value).join('; ')].map(csvCell).join(','))).join(eol()) + eol();
   if (fmt === 'json') {
     const p = curProfile();
-    return JSON.stringify({ app: "Guyanonymous' Prompt Studio v3", template: S.tpl.name, model: p ? p.name : null, created: new Date().toISOString(), count: part.length,
+    return JSON.stringify({ app: "Guyanonymous' Prompt Studio v3.1", template: S.tpl.name, model: p ? p.name : null, created: new Date().toISOString(), count: part.length,
       items: part.map((r, i) => ({ n: startN + i, seed: r.seed, prompt: r.prompt, negative: r.negative || undefined, picks: Object.fromEntries(r.picks.map(x => [x.name, x.value])) })) }, null, 2) + eol();
   }
   return part.map(r => (opts.batchSeedPrefix ? `${r.seed} | ` : '') + r.prompt).join(eol()) + eol();
