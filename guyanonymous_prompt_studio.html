@@ -5,7 +5,7 @@
 <!-- Blocks every network request: the page cannot upload or download anything. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:; base-uri 'none'; form-action 'none'" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Offline Wildcard Prompt Studio v2.4</title>
+<title>Offline Wildcard Prompt Studio v2.5</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -152,6 +152,37 @@
   body.dragging, body.dragging * { user-select: none !important; }
   #wc-list.wrap .truncate { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
   #wc-list.wrap .wc-row { align-items: flex-start; }
+  /* v2.5: tabs, gauge, tables, modals */
+  .card div.note { font-size: 0.6875rem; color: var(--muted); line-height: 1.45; }
+  .tbl .m, #vers-view .m { color: var(--dim); font-size: .6875rem; }
+  .lib-q span, .lib-q label { font-size: .75rem; color: var(--muted); }
+  .tabs { display: flex; gap: .25rem; padding: .35rem 1rem 0; overflow-x: auto; flex: none; border-bottom: 1px solid var(--line); }
+  .tab { display: flex; align-items: center; gap: .3rem; padding: .22rem .25rem .22rem .6rem; border: 1px solid var(--line); border-bottom: 0; border-radius: .4rem .4rem 0 0; background: var(--panel2); font-size: .6875rem; color: var(--muted); cursor: pointer; white-space: nowrap; max-width: 14rem; }
+  .tab.on { background: var(--panel); color: #fff; border-color: var(--indigo); }
+  .tab .nm { overflow: hidden; text-overflow: ellipsis; } .tab .dot { color: var(--amber-t); }
+  .tab .x, .tab-add { border: 0; background: transparent; color: inherit; cursor: pointer; border-radius: 4px; padding: 0 .3rem; font-size: .8rem; line-height: 1.4; }
+  .tab .x:hover, .tab-add:hover { background: rgba(255,255,255,.15); }
+  .tab-add { color: var(--indigo-t); font-weight: 700; padding: .2rem .5rem; }
+  .gauge { margin-top: .3rem; }
+  .gbar { position: relative; height: .5rem; border-radius: 99px; background: var(--line); overflow: visible; }
+  .gbar i { display: block; height: 100%; border-radius: 99px; background: var(--emerald); width: 0; max-width: 100%; }
+  .gbar.warn i { background: var(--amber); } .gbar.bad i { background: var(--rose); }
+  .gbar b { position: absolute; top: -.2rem; width: 2px; height: .9rem; background: #e2e8f0; opacity: .8; } .gbar b.m2 { background: var(--rose); }
+  .gtxt { font-size: .6875rem; color: var(--muted); margin-top: .25rem; line-height: 1.4; } .gtxt.warn { color: var(--amber-t); } .gtxt.bad { color: #fb7185; }
+  .modal.wide { max-width: 60rem; }
+  .tbl { display: flex; flex-direction: column; gap: .3rem; min-height: 0; overflow-y: auto; max-height: 62vh; }
+  .trow { display: flex; align-items: center; gap: .5rem; padding: .35rem .5rem; border: 1px solid var(--line); border-radius: .4rem; background: var(--panel2); font-size: .75rem; }
+  .trow .t { flex: 1; min-width: 0; color: #e2e8f0; overflow-wrap: anywhere; }
+  .trow .m { color: var(--dim); font-size: .6875rem; white-space: nowrap; }
+  .trow.sel { border-color: var(--indigo); }
+  .tgrp { margin-top: .4rem; font-size: .6875rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #cbd5e1; display: flex; align-items: center; gap: .5rem; }
+  .vers-grid { display: grid; grid-template-columns: 17rem 1fr; gap: .75rem; min-height: 0; }
+  #vers-view { overflow: auto; max-height: 62vh; font: .75rem/1.5 var(--mono); color: #cbd5e1; white-space: pre-wrap; border: 1px solid var(--line); border-radius: .4rem; padding: .5rem; }
+  #vers-view .add { background: rgba(16,185,129,.18); display: block; } #vers-view .del { background: rgba(244,63,94,.18); display: block; }
+  .form { display: grid; grid-template-columns: 9rem 1fr; gap: .4rem .6rem; align-items: center; font-size: .75rem; color: var(--muted); }
+  .form input, .form select, .form textarea { width: 100%; }
+  .lib-q { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+  .lib-q input[type=text] { flex: 1; min-width: 12rem; }
   /* v2.4: variables, locks, menus */
   .vmark { background: hsl(var(--vh) 65% 55% / .22); border-radius: 3px; }
   .vmark.bad { background: rgba(244,63,94,.35); }
@@ -236,12 +267,15 @@
   <div class="brand">
     <div class="brand-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
     <div>
-      <h1>Offline Wildcard Prompt Studio <span class="badge badge-indigo">v2.4</span> <span class="badge badge-active">Offline</span></h1>
+      <h1>Offline Wildcard Prompt Studio <span class="badge badge-indigo">v2.5</span> <span class="badge badge-active">Offline</span></h1>
       <p>Nothing is uploaded. The page can only read and write folders you choose.</p>
     </div>
   </div>
   <div class="head-actions">
     <button id="btn-folders" class="btn btn-slate" style="color:#a5b4fc">Folders</button>
+    <button id="btn-library" class="btn btn-slate" title="Search, health check and where-used for your wildcard files">Library</button>
+    <button id="btn-history" class="btn btn-slate" title="Recent and kept samples">History</button>
+    <button id="btn-projects" class="btn btn-slate" title="Save and reopen whole sets of templates and settings">Projects</button>
     <div class="sep"></div>
     <button id="btn-new" class="btn btn-slate">New</button>
     <button id="btn-open" class="btn btn-slate">Open</button>
@@ -293,6 +327,8 @@
         <span id="insp-title" class="mono truncate" style="font-size:.75rem;font-weight:700"></span>
         <div class="row" style="gap:.15rem">
           <button id="insp-insert" class="btn btn-slate btn-sm">Insert tag</button>
+          <button id="insp-dedupe" class="btn btn-slate btn-sm" title="Remove repeated lines (then press Save file)">Remove duplicates</button>
+          <button id="insp-where" class="btn btn-slate btn-sm" title="Which wildcard files use this one?">Where used</button>
           <button id="insp-save" class="btn btn-emerald btn-sm">Save file</button>
           <button id="insp-close" class="btn-icon" title="Close">✕</button>
         </div>
@@ -312,9 +348,11 @@
         <input type="text" id="tpl-name" spellcheck="false" title="File name used when saving" />
         <span id="dirty" class="badge badge-warn hidden">unsaved</span>
       </div>
-      <div class="row"><button id="btn-remember" class="btn btn-slate btn-sm" title="Select some text or tags, then click: they become a reusable ${name=…} and a ${name} is left in their place">Remember…</button>
+      <div class="row"><button id="btn-versions" class="btn btn-slate btn-sm" title="Autosaved versions of this template">Versions…</button>
+        <button id="btn-remember" class="btn btn-slate btn-sm" title="Select some text or tags, then click: they become a reusable ${name=…} and a ${name} is left in their place">Remember…</button>
         <button id="btn-clear" class="btn btn-slate btn-sm">Clear</button></div>
     </div>
+    <div id="tabs" class="tabs"></div>
     <p class="hint">Type normally and use <code>__filename__</code> for wildcards. Type <code>__</code> for suggestions. Green = file found, red = not found. Click inside a green tag, then press the <b>▸</b> button at the right edge of that line to see the file’s lines and swap the tag for one of them. Reuse one pick with <code>${name=__a__ __b__}</code> and <code>${name}</code>, or <code>__file$name__</code>. Select text and press <b>Remember…</b> to do it for you.</p>
     <div class="editor-wrap" id="editor-wrap">
       <pre id="bd" class="backdrop" aria-hidden="true"></pre>
@@ -329,6 +367,7 @@
         <div class="tools">
           <label class="field" for="seed">Seed <input type="number" id="seed" min="0" max="4294967295" /></label>
           <button id="btn-roll" class="btn btn-emerald btn-sm" title="Ctrl+Enter">Roll new sample</button>
+          <button id="btn-fav" class="btn btn-slate btn-sm" title="Keep this exact sample in Favourites (History)">★ Keep</button>
           <button id="btn-copy" class="btn btn-slate btn-sm">Copy</button>
           <button id="btn-save-sample" class="btn btn-indigo btn-sm">Save sample .txt</button>
         </div>
@@ -346,6 +385,7 @@
       <div class="final">
         <div class="row between"><span>Exactly what gets saved <span id="final-stats"></span></span>
           <span>Click a highlighted part above to re-roll just that part</span></div>
+        <div id="gauge" class="gauge hidden"><div class="gbar"><i></i><b class="m1"></b><b class="m2"></b></div><div class="gtxt"></div></div>
         <div id="final-text" class="txt"></div>
       </div>
     </section>
@@ -362,10 +402,31 @@
       <label class="chk"><input type="checkbox" data-opt="weights" /> <span>Weighted options <code class="mono">3:: text</code><small>In wildcard files and inside {…}. Higher number = picked more often. 0 = switched off.</small></span></label>
       <label class="chk"><input type="checkbox" data-opt="comments" /> <span>Ignore lines starting with #<small>In wildcard files.</small></span></label>
       <label class="chk"><input type="checkbox" data-opt="subfolders" /> <span>Include subfolders when scanning</span></label>
+      <label class="chk"><input type="checkbox" data-opt="autoRescan" /> <span>Rescan the wildcard folder when I return to this window<small>Picks up files you edited in another program. Never interrupts an unsaved edit.</small></span></label>
       <label class="chk"><input type="checkbox" data-opt="liveUpdate" /> <span>Update sample as I type</span></label>
       <label class="chk"><input type="checkbox" data-opt="colorize" /> <span>Colour-code wildcard results</span></label>
       <label class="chk"><input type="checkbox" data-opt="parentColor" /> <span>Colour by parent<small>Parts called by the same wildcard share its colour. Off = colour by depth.</small></span></label>
       <label class="chk"><input type="checkbox" data-opt="crlf" /> <span>Windows line endings (CRLF) in saved files</span></label>
+    </div>
+
+    <div class="card" id="card-model">
+      <h3>Model and length</h3>
+      <div class="row"><select id="prof-sel" class="grow"></select><button id="btn-prof-manage" class="btn btn-slate btn-sm">Manage…</button></div>
+      <div class="field"><label for="ext-frontend">Frontend</label><select id="ext-frontend" data-ext="frontend"><option value="comfy">ComfyUI</option><option value="a1111">Forge / A1111 / sd_webui</option><option value="other">Other or hosted</option></select></div>
+      <div id="prof-info" class="note"></div>
+      <div class="row"><button id="btn-prof-apply" class="btn btn-slate btn-sm" title="Sets single paragraph, tidy and weight handling to suit this model">Apply recommended options</button>
+        <button id="btn-prof-cal" class="btn btn-slate btn-sm" title="Teach the counter by entering the token count your own tool reports">Calibrate…</button></div>
+      <button id="btn-lencheck" class="btn btn-slate btn-sm">Check length over 200 rolls</button>
+      <div id="len-result" class="note"></div>
+    </div>
+
+    <div class="card">
+      <h3>Prefix, suffix and negative prompt</h3>
+      <input type="text" id="ext-prefix" data-ext="prefix" placeholder="Prefix, e.g. masterpiece, best quality," spellcheck="false" />
+      <input type="text" id="ext-suffix" data-ext="suffix" placeholder="Suffix, e.g. , 8k, sharp focus" spellcheck="false" />
+      <textarea id="ext-negative" data-ext="negative" rows="2" placeholder="Negative prompt (optional)" spellcheck="false"></textarea>
+      <label class="chk"><input type="checkbox" id="ext-stripw" data-ext="stripW" /> <span>Remove (word:1.2) weights for models that ignore them<small>Only when the chosen model is marked “no weights”.</small></span></label>
+      <p class="note">Added to every copy, saved sample, batch line and export. They can contain wildcards. They are chosen separately from the main template, so <code class="mono">${name}</code> values don’t carry into them.</p>
     </div>
 
     <div class="card">
@@ -374,9 +435,23 @@
       <label class="chk"><input type="checkbox" data-opt="batchUnique" /> <span>Skip duplicates</span></label>
       <label class="chk"><input type="checkbox" data-opt="batchRepro" /> <span>Reproducible<small>Derive each prompt’s seed from the Seed box. Otherwise every prompt gets a fresh random seed.</small></span></label>
       <label class="chk"><input type="checkbox" data-opt="batchSeedPrefix" /> <span>Write each seed before its prompt<small>Format: <span class="mono">seed | prompt</span></small></span></label>
+      <div class="field"><label for="ext-fmt">File format</label><select id="ext-fmt" data-ext="fmt"><option value="txt">Text, one prompt per line</option><option value="csv">CSV (seed, prompt, negative, picks)</option><option value="json">JSON (same, structured)</option></select></div>
+      <div class="field"><label for="ext-split">Split every</label><input type="number" id="ext-split" data-ext="split" min="0" max="100000" title="0 = a single file" /> <span>prompts (0 = one file)</span></div>
+      <label class="chk"><input type="checkbox" id="ext-negfile" data-ext="negFile" /> <span>Text format: also write a matching _negative file<small>Same number of lines, for line-by-line loaders. Only when a negative prompt is set.</small></span></label>
       <div class="row"><button id="btn-batch" class="btn btn-indigo grow">Generate and save batch</button><button id="btn-batch-cancel" class="btn btn-slate hidden">Cancel</button></div>
       <div id="batch-prog" class="hidden"><div class="progress"><div id="batch-bar"></div></div><div id="batch-txt" class="small-mono" style="text-align:right;margin-top:.2rem"></div></div>
+      <div id="batch-stats" class="note"></div>
       <details id="batch-preview-wrap" class="hidden"><summary>Preview of last batch</summary><div id="batch-preview" class="lines-prev"></div></details>
+    </div>
+
+    <div class="card">
+      <h3>Sweep one wildcard</h3>
+      <p class="note">Writes one prompt for every line of the chosen wildcard while everything else is randomised. Uses the file format and split settings above.</p>
+      <select id="sweep-sel"></select>
+      <div class="field"><label for="sweep-rep">Repeat each</label><input type="number" id="sweep-rep" min="1" max="100" value="1" /> <span>times</span></div>
+      <div id="sweep-count" class="mono" style="font-size:.75rem;color:var(--amber-t)">–</div>
+      <div class="row"><button id="btn-sweep" class="btn btn-amber grow">Export sweep</button><button id="btn-sweep-cancel" class="btn btn-slate hidden">Cancel</button></div>
+      <div id="sweep-prog" class="hidden"><div class="progress"><div id="sweep-bar"></div></div><div id="sweep-txt" class="small-mono" style="text-align:right;margin-top:.2rem"></div></div>
     </div>
 
     <div class="card">
@@ -434,6 +509,12 @@
     <dt>__file$name__</dt><dd>Pick from file, remember it as name, and print it. A second __file$name__ repeats the same pick.</dd>
     <dt>$$</dt><dd>A literal dollar sign when the variable syntax is on. A lone $ (as in $5) needs no escape.</dd>
     <dt>3:: text</dt><dd>Weight, in wildcard files and inside {…} (turn on in Output options). 0:: switches an option off.</dd>
+    <dt>Model and length</dt><dd>Pick your model to see an estimated token gauge under “Exactly what gets saved”. Limits are editable starting points. Calibrate the counter with the number your own tool reports.</dd>
+    <dt>Prefix, suffix, negative</dt><dd>Added to every copy, save and export. Wildcards are allowed in them.</dd>
+    <dt>Batch formats</dt><dd>Text, CSV or JSON (with each prompt’s seed and the lines that were picked). Splitting writes several numbered files.</dd>
+    <dt>Sweep</dt><dd>Writes one prompt per line of one wildcard while the rest stays random.</dd>
+    <dt>Tabs and Versions</dt><dd>Several templates can be open at once. Versions are autosaved; Versions… restores or compares them.</dd>
+    <dt>History, Library, Projects</dt><dd>Restore past samples or keep favourites. Search every line, check the library for problems, see where a file is used. Save sets of tabs as projects.</dd>
     <dt>Right-click a part</dt><dd>Re-roll it, lock it so Roll new sample keeps it, choose a specific line, or copy its text.</dd>
     <dt># comment</dt><dd>Lines beginning with # in a wildcard file are skipped (optional).</dd>
     <dt>Seed</dt><dd>Same seed + same template = same sample. Editing text keeps the other choices stable. Click a coloured part to re-roll only that part.</dd>
@@ -442,6 +523,42 @@
     <dt>Ctrl+O</dt><dd>Open template</dd>
   </dl>
   <p>A saved template is itself a .txt file. If you put it in your wildcard folder it becomes a wildcard, with each line treated as one option.</p>
+</div></div>
+
+<!-- v2.5 modals -->
+<div id="m-prof" class="modal-backdrop hidden"><div class="modal wide">
+  <div class="head"><h3>Models and token limits</h3><button class="btn-icon" data-close="m-prof">✕</button></div>
+  <p>These are starting points, not guarantees. Limits marked “estimate” or “unverified” come from research notes and community reports, so test them in your own setup and edit them here. Your changes are kept separately from the originals, so you can always revert.</p>
+  <div class="row" style="flex-wrap:wrap"><button id="prof-add" class="btn btn-indigo btn-sm">+ New profile</button><button id="prof-import" class="btn btn-slate btn-sm">Import…</button><button id="prof-export" class="btn btn-slate btn-sm">Export…</button><button id="prof-revert-all" class="btn btn-slate btn-sm">Revert all defaults</button><input type="file" id="prof-file" accept=".json,application/json" class="hidden" /></div>
+  <div id="prof-body"></div>
+</div></div>
+
+<div id="m-hist" class="modal-backdrop hidden"><div class="modal wide">
+  <div class="head"><h3>Samples</h3><button class="btn-icon" data-close="m-hist">✕</button></div>
+  <div class="row"><button id="hist-tab-h" class="btn btn-indigo btn-sm">History</button><button id="hist-tab-f" class="btn btn-slate btn-sm">Favourites</button><span class="grow"></span><button id="hist-export" class="btn btn-slate btn-sm">Save list as .txt</button><button id="hist-clear" class="btn btn-slate btn-sm">Clear</button></div>
+  <p id="hist-note"></p>
+  <div id="hist-body" class="tbl"></div>
+</div></div>
+
+<div id="m-lib" class="modal-backdrop hidden"><div class="modal wide">
+  <div class="head"><h3>Library</h3><button class="btn-icon" data-close="m-lib">✕</button></div>
+  <div class="row"><button id="lib-tab-s" class="btn btn-indigo btn-sm">Search lines</button><button id="lib-tab-h" class="btn btn-slate btn-sm">Health check</button><button id="lib-tab-w" class="btn btn-slate btn-sm">Where used</button></div>
+  <div id="lib-prog" class="small-mono"></div>
+  <div id="lib-body" class="tbl"></div>
+</div></div>
+
+<div id="m-vers" class="modal-backdrop hidden"><div class="modal wide">
+  <div class="head"><h3>Versions of this template</h3><button class="btn-icon" data-close="m-vers">✕</button></div>
+  <p>Versions are saved automatically a short while after you stop typing, and when you save or close a tab. They are kept inside this browser only.</p>
+  <div class="row"><button id="vers-now" class="btn btn-indigo btn-sm">Save a named version now</button></div>
+  <div class="vers-grid"><div id="vers-list" class="tbl"></div><div id="vers-view"></div></div>
+</div></div>
+
+<div id="m-proj" class="modal-backdrop hidden"><div class="modal wide">
+  <div class="head"><h3>Projects</h3><button class="btn-icon" data-close="m-proj">✕</button></div>
+  <p>A project is a named set of open templates (with their prefix, suffix, negative prompt and model) plus your output settings. Wildcard and output folders are not part of a project.</p>
+  <div class="row" style="flex-wrap:wrap"><button id="proj-save" class="btn btn-indigo btn-sm">Save current as project…</button><button id="proj-import" class="btn btn-slate btn-sm">Import file…</button><input type="file" id="proj-file" accept=".json,application/json" class="hidden" /></div>
+  <div id="proj-body" class="tbl"></div>
 </div></div>
 
 <div id="toasts"></div>
@@ -454,7 +571,7 @@
 const MAX_DEPTH = 30;
 const opts = {
   onePara: true, tidy: false, inline: false, comments: true, subfolders: true,
-  liveUpdate: true, colorize: true, parentColor: true, crlf: false, vars: true, weights: false,
+  liveUpdate: true, colorize: true, parentColor: true, crlf: false, vars: true, weights: false, autoRescan: false,
   batchCount: 50, batchUnique: true, batchRepro: false, batchSeedPrefix: false,
   permMulti: false, permDedupe: true, permCap: 100000
 };
@@ -935,7 +1052,9 @@ async function ensurePerm(handle, mode) {
   return p === 'granted';
 }
 async function openSink(kind, suggested) {
-  suggested = safeName(suggested);
+  const sx = (/\.(csv|json|txt)$/i.exec(suggested) || [])[1], sExt = sx ? '.' + sx.toLowerCase() : '.txt';
+  const sMime = { '.txt': 'text/plain', '.csv': 'text/csv', '.json': 'application/json' }[sExt];
+  suggested = safeName(suggested, sExt);
   const dir = S.handles[kind];
   if (dir) {
     try {
@@ -948,7 +1067,7 @@ async function openSink(kind, suggested) {
   }
   if (typeof window.showSaveFilePicker === 'function') {
     try {
-      const o = { suggestedName: suggested, id: kind, types: [{ description: 'Text file', accept: { 'text/plain': ['.txt'] } }] };
+      const o = { suggestedName: suggested, id: kind, types: [{ description: sExt.slice(1).toUpperCase() + ' file', accept: { [sMime]: [sExt] } }] };
       if (dir) o.startIn = dir;
       const fh = await window.showSaveFilePicker(o);
       const w = await fh.createWritable();
@@ -957,7 +1076,7 @@ async function openSink(kind, suggested) {
   }
   const parts = [];
   return { where: 'Downloads\\' + suggested, fh: null, write: s => { parts.push(s); }, abort: () => {},
-    close: async () => { downloadBlob(suggested, new Blob(parts, { type: 'text/plain;charset=utf-8' })); } };
+    close: async () => { downloadBlob(suggested, new Blob(parts, { type: sMime + ';charset=utf-8' })); } };
 }
 function downloadBlob(name, blob) {
   const url = URL.createObjectURL(blob); const a = document.createElement('a');
@@ -1036,7 +1155,7 @@ async function scanFolder(handle, request = false) {
     if (request) { if (!(await ensurePerm(handle, 'read'))) { toast('Folder access was not granted.', 'error'); return; } }
     else if ((await handle.queryPermission({ mode: 'read' })) !== 'granted') { if (!(await handle.requestPermission({ mode: 'read' }) === 'granted')) { refreshStatus(); return; } }
     const out = []; await walkDir(handle, '', opts.subfolders, out);
-    installIndex(out, 'folder');
+    installIndex(out, 'folder'); S.sig = null; sigFrom(out).then(x => { S.sig = x; }).catch(() => {});
     $('btn-reconnect').classList.add('hidden');
     toast(`Found ${out.length} .txt file${out.length === 1 ? '' : 's'} in ${handle.name}`, 'success');
   } catch (e) { toast('Could not scan folder: ' + e.message, 'error'); refreshStatus(); }
@@ -1187,7 +1306,7 @@ function highlight() {
   bd.innerHTML = hlText(t, opts.vars ? definedNames(t) : new Set()) + '\n'; bd.scrollTop = ed.scrollTop;
 }
 function markDirty() { S.tpl.dirty = true; $('dirty').classList.remove('hidden'); }
-const saveDraft = debounce(() => lsSet('wps.draft', { text: ed.value, name: S.tpl.name }), 400);
+const saveDraft = debounce(() => { lsSet('wps.draft', { text: ed.value, name: S.tpl.name }); tabsTouch(); }, 400);
 function onEditorInput() {
   markDirty(); highlight(); updateSuggest();
   if (opts.liveUpdate) refreshSampleSoon(); else $('sample-view').classList.add('stale');
@@ -1434,7 +1553,8 @@ async function refreshSample() {
   const issues = newIssues();
   let tree; try { tree = await evaluate(text, S.seed, S.overrides, issues, S.forced); } catch (e) { toast('Evaluation error: ' + e.message, 'error'); return; }
   if (tok !== evalTok) return;
-  S.tree = tree; S.issuesSample = issues; S.final = finalize(flat(tree));
+  const fin = await shapeFinal(finalize(flat(tree)), S.seed); if (tok !== evalTok) return;
+  S.tree = tree; S.issuesSample = issues; S.final = fin;
   drawSample();
   updateFinal(); renderTrace(tree); renderIssues();
 }
@@ -1442,6 +1562,7 @@ function updateFinal() {
   $('final-text').textContent = S.final;
   const w = S.final.trim() ? S.final.trim().split(/\s+/).length : 0;
   $('final-stats').textContent = S.final ? `· ${S.final.length.toLocaleString()} characters · ${w.toLocaleString()} words` : '';
+  updateGauge();
 }
 function renderTrace(tree) {
   const box = $('trace'); box.replaceChildren(); let n = 0;
@@ -1483,7 +1604,7 @@ $('btn-expand-all').onclick = () => { $('lvl').value = ''; setLevels(99); };
 $('btn-collapse-all').onclick = () => { $('lvl').value = 0; setLevels(0); };
 $('lvl').addEventListener('change', () => { let v = parseInt($('lvl').value, 10); if (!Number.isFinite(v) || v < 0) v = 0; $('lvl').value = v; setLevels(Math.min(v, 99)); });
 function keepLocks() { for (const k of [...S.overrides.keys()]) if (!S.locks.has(k)) S.overrides.delete(k); }   // a roll keeps locked parts
-function rollAll() { S.seed = randomSeed(); keepLocks(); $('seed').value = S.seed; refreshSample(); }
+function rollAll() { pushHistory(); S.seed = randomSeed(); keepLocks(); $('seed').value = S.seed; refreshSample(); }
 
 /* ---- locks, chosen lines, right-click menu, remembered-values strip ---- */
 function pickTarget(n) {                           // the wildcard whose line can be chosen for this part
@@ -1563,14 +1684,14 @@ $('btn-unlock-all').onclick = () => { for (const k of S.locks) S.overrides.delet
 $('btn-roll').onclick = rollAll;
 $('seed').addEventListener('change', () => { let v = parseInt($('seed').value, 10); if (!Number.isFinite(v) || v < 0) v = randomSeed(); S.seed = v >>> 0; $('seed').value = S.seed; keepLocks(); refreshSample(); });
 $('btn-copy').onclick = async () => {
-  if (!S.final) return;
+  if (!S.final) return; pushHistory();
   try { await navigator.clipboard.writeText(S.final); } catch { const t = document.createElement('textarea'); t.value = S.final; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
   toast('Copied to clipboard', 'success');
 };
-$('btn-save-sample').onclick = async () => { if (!S.final) return toast('Nothing to save yet.', 'error'); await saveSmall('samples', `sample_${tplSlug()}_${stamp()}.txt`, toEol(S.final) + eol()); };
+$('btn-save-sample').onclick = async () => { if (!S.final) return toast('Nothing to save yet.', 'error'); pushHistory(); await saveSmall('samples', `sample_${tplSlug()}_${stamp()}.txt`, toEol(S.final) + eol()); };
 
 /* ---------- counts ---------- */
-const scheduleCount = debounce(refreshCount, 450);
+const scheduleCount = debounce(() => { refreshCount(); updateSweepList(); }, 450);
 async function refreshCount() {
   const tok = ++countTok; const ast = parse(ed.value, opts.inline); const refs = refsIn(ast).length;
   const label = $('perm-count'), badge = $('perm-badge');
@@ -1636,11 +1757,11 @@ $('btn-perm').onclick = async () => {
   const mine = job.perm = { cancel: false }; $('btn-perm').disabled = true; $('btn-perm-cancel').classList.remove('hidden');
   let written = 0, scanned = 0; const seen = opts.permDedupe ? new Set() : null; let buf = [];
   try {
-    await preload(ast);
+    await preload(ast); const permAf = await affixes(S.seed);
     const goal = total != null && total < BigInt(cap) ? Number(total) : cap;
     for (const raw of enumNodes(ast, 0, [], newEnv(ast))) {
       scanned++;
-      const line = finalize(raw);
+      const line = applyShape(finalize(raw), permAf);
       if (seen) { if (seen.has(line)) { if (scanned % 5000 === 0) await tick(); continue; } seen.add(line); }
       buf.push(line); written++;
       if (buf.length >= 2000) { await sink.write(buf.join(eol()) + eol()); buf = []; setProg('perm', true, Math.min(100, Math.round(written / goal * 100)), `${written.toLocaleString()} written`); await tick(); if (mine.cancel) break; }
@@ -1660,8 +1781,9 @@ $('btn-perm-cancel').onclick = () => { if (job.perm) job.perm.cancel = true; };
 
 /* ---------- templates ---------- */
 function setTplName(n) { S.tpl.name = n; $('tpl-name').value = n; }
-function confirmDiscard() { return !S.tpl.dirty || !ed.value.trim() || confirm('This template has unsaved changes. Discard them?'); }
-function loadTemplateText(text, name, handle) {
+function confirmDiscard() { return true; }   // opening goes to a new tab, so nothing is discarded
+function loadTemplateText(text, name, handle) { loadIntoTabs(text, name, handle); }
+function loadTemplateHere(text, name, handle) {
   ed.value = text.replace(/\r\n?/g, '\n'); setTplName(name.replace(/\.txt$/i, '')); S.tpl.handle = handle || null;
   S.tpl.dirty = false; $('dirty').classList.add('hidden'); S.overrides.clear(); S.locks.clear(); S.forced.clear(); S.exp.clear(); highlight(); refreshSample(); scheduleCount(); saveDraft();
 }
@@ -1683,7 +1805,7 @@ async function saveTemplate(forceAs) {
   const sink = await saveSmall('templates', name, content);
   if (sink) { S.tpl.handle = sink.fh || null; markSaved(name); }
 }
-function markSaved(name) { setTplName(name.replace(/\.txt$/i, '')); S.tpl.dirty = false; $('dirty').classList.add('hidden'); saveDraft(); }
+function markSaved(name) { setTplName(name.replace(/\.txt$/i, '')); S.tpl.dirty = false; $('dirty').classList.add('hidden'); saveDraft(); captureTab(); snapshotVersion(curTab(), 'saved'); }
 async function openTemplateDialog() {
   if (!confirmDiscard()) return;
   const dir = S.handles.templates;
@@ -1711,7 +1833,7 @@ async function browseTemplate() {
   } else $('file-tpl').click();
 }
 $('file-tpl').addEventListener('change', async e => { const f = e.target.files[0]; if (f) loadTemplateText(await f.text(), f.name, null); e.target.value = ''; });
-$('btn-new').onclick = () => { if (!confirmDiscard()) return; loadTemplateText('', 'untitled-prompt', null); ed.focus(); };
+$('btn-new').onclick = () => { addTab(); ed.focus(); };
 $('btn-clear').onclick = () => { ed.value = ''; onEditorInput(); ed.focus(); };
 $('btn-open').onclick = openTemplateDialog;
 $('btn-browse').onclick = browseTemplate;
@@ -1809,6 +1931,675 @@ new ResizeObserver(() => applyLayout()).observe(centerEl);
 window.addEventListener('resize', applyLayout);
 applyLayout();
 
+/* =====================================================================
+   v2.5 EXTENSIONS: models + length, shaping, exports, sweep, history,
+   library tools, tabs, versions, projects
+   ===================================================================== */
+const kv = { get: async (k, d) => { const v = await idbGet('kv:' + k); return v == null ? d : v; }, set: (k, v) => idbSet('kv:' + k, v) };
+const ext = Object.assign({ stripW: true, fmt: 'txt', split: 0, negFile: true, frontend: 'comfy', profile: 'krea2', prefix: '', suffix: '', negative: '' }, lsGet('wps.ext', {}));
+const saveExt = () => { lsSet('wps.ext', ext); tabsTouch(); };
+const pad2 = n => String(n).padStart(2, '0');
+const fmtTime = ts => { const d = new Date(ts); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+const clipTxt = (t, n = 160) => t.length > n ? t.slice(0, n) + '…' : t;
+function openModal(id) { $(id).classList.remove('hidden'); }
+function closeModal(id) { $(id).classList.add('hidden'); }
+function mkBtn(label, cls, fn, title) { const b = mkEl('button', 'btn ' + cls + ' btn-sm', label); if (title) b.title = title; b.onclick = fn; return b; }
+function askNum(title, def) { return askText(title, String(def)).then(v => v == null ? null : parseFloat(v)); }
+
+/* ---------- model profiles ---------- */
+const PROFILE_DEFAULTS = [
+  { id: 'sd15', name: 'SD 1.5 / 2.x', family: 'CLIP tags (short)', tok: 'clip', rec: 75, hard: 77, chunk: 75, weights: 'yes', neg: 'yes', style: 'tags', conf: 'verified', note: 'CLIP reads 77 tokens per chunk (75 usable). Forge/A1111 split longer prompts into chunks; ComfyUI joins them.' },
+  { id: 'sdxl', name: 'SDXL, Playground, Cascade', family: 'CLIP tags (short)', tok: 'clip', rec: 150, hard: 225, chunk: 75, weights: 'yes', neg: 'yes', style: 'tags', conf: 'estimate', note: 'Chunked in 75s like SD1.5. Later chunks have less influence, so put key subjects early.' },
+  { id: 'pony', name: 'Pony / Illustrious / NoobAI', family: 'Anime and tag models', tok: 'clip', rec: 150, hard: 225, chunk: 75, weights: 'yes', neg: 'yes', style: 'tags', conf: 'estimate', note: 'SDXL descendants. Quality tags first, then subject, then details.' },
+  { id: 'anima', name: 'Anima (2B anime)', family: 'Anime and tag models', tok: 'llm', rec: 200, hard: 250, chunk: 0, weights: 'unsure', neg: 'yes', style: 'tags', conf: 'estimate', note: 'Small Qwen3 0.6B encoder. Tags, sentences or both. Artist names use an @ prefix. No limit stated; keep it short.' },
+  { id: 'flux1', name: 'Flux.1 dev / Krea / Kontext', family: 'T5 natural language', tok: 't5', rec: 400, hard: 512, chunk: 0, weights: 'no', neg: 'no', style: 'sentences', conf: 'verified', note: 'T5 encoder, 512 tokens for dev (schnell: 256). Flux ignores negative prompts at normal CFG.' },
+  { id: 'flux1s', name: 'Flux.1 schnell', family: 'T5 natural language', tok: 't5', rec: 200, hard: 256, chunk: 0, weights: 'no', neg: 'no', style: 'sentences', conf: 'verified', note: 'Shorter T5 window than dev.' },
+  { id: 'chroma', name: 'Chroma / AuraFlow / PixArt', family: 'T5 natural language', tok: 't5', rec: 300, hard: 512, chunk: 0, weights: 'unsure', neg: 'yes', style: 'sentences', conf: 'estimate', note: 'T5-class encoders. Limits differ by model; check yours.' },
+  { id: 'flux2', name: 'FLUX.2 dev / klein', family: 'LLM-encoder natural language', tok: 'llm', rec: 400, hard: 512, chunk: 0, weights: 'no', neg: 'no', style: 'sentences', conf: 'verified', note: 'Max sequence length 512 tokens (Mistral3 or Qwen3 encoder).' },
+  { id: 'krea2', name: 'Krea 2', family: 'LLM-encoder natural language', tok: 'llm', rec: 512, hard: 640, chunk: 0, weights: 'unsure', neg: 'weak', style: 'sentences', conf: 'estimate', note: 'Qwen3-VL encoder; reference length 512. A ComfyUI bug report saw corrupted output beyond about 640 tokens, yet many people run 800-1100 words successfully. ComfyUI does not cap prompts; other frontends may. Test a detail placed at the very end. Weight support is disputed.' },
+  { id: 'krea3', name: 'Krea 3 (hosted)', family: 'Hosted natural language', tok: 'hosted', rec: 512, hard: null, chunk: 0, weights: 'no', neg: 'unsure', style: 'sentences', conf: 'unverified', note: 'Editing-focused partner node; no prompt limit stated. Krea rewrites prompts, so seeds do not reproduce images. References use @Image1, @Image2.' },
+  { id: 'moss', name: 'MOSS-Image', family: 'LLM-encoder natural language', tok: 'llm', rec: 1500, hard: 4096, chunk: 0, weights: 'unsure', neg: 'yes', style: 'sentences', conf: 'verified', note: 'Qwen3.5 9B encoder, accepts about 4K tokens. Natural-language captions; Base also accepts ordered tags; JSON layout prompts. Keep the negative short.' },
+  { id: 'zimage', name: 'Z-Image Turbo', family: 'LLM-encoder natural language', tok: 'llm', rec: 512, hard: 1024, chunk: 0, weights: 'no', neg: 'no', style: 'sentences', conf: 'verified', note: '512 tokens by default, raisable to 1024. Dense 100-180 word paragraphs work well. Negatives are ignored at low CFG.' },
+  { id: 'qwen', name: 'Qwen-Image', family: 'LLM-encoder natural language', tok: 'llm', rec: 512, hard: 1024, chunk: 0, weights: 'unsure', neg: 'yes', style: 'sentences', conf: 'estimate', note: 'Qwen2.5-VL encoder; no exact limit found.' },
+  { id: 'ming', name: 'Ming Image (design)', family: 'LLM-encoder natural language', tok: 'llm', rec: 512, hard: 1024, chunk: 0, weights: 'unsure', neg: 'unsure', style: 'sentences', conf: 'unverified', note: 'Layouts with lots of text. Describe section by section, put text to render in quotes.' },
+  { id: 'mage', name: 'Mage-Flow / Boogu / other Qwen3-VL models', family: 'LLM-encoder natural language', tok: 'llm', rec: 512, hard: 1024, chunk: 0, weights: 'unsure', neg: 'unsure', style: 'sentences', conf: 'unverified', note: 'No token limit stated on their pages.' },
+  { id: 'wan', name: 'Wan video', family: 'Video', tok: 't5', rec: 200, hard: 512, chunk: 0, weights: 'no', neg: 'yes', style: 'sentences', conf: 'estimate', note: 'umT5 encoder. Describe subject, action, camera and lighting.' },
+  { id: 'hosted', name: 'Hosted chat-style (OpenAI, Imagen, Ideogram, ...)', family: 'Hosted natural language', tok: 'hosted', rec: 600, hard: null, chunk: 0, weights: 'no', neg: 'no', style: 'sentences', conf: 'unverified', note: 'Limits vary by service and change often.' },
+  { id: 'generic-nl', name: 'Generic natural-language model', family: 'Generic', tok: 'llm', rec: 512, hard: 1024, chunk: 0, weights: 'unsure', neg: 'unsure', style: 'sentences', conf: 'unverified', note: 'Use as a starting point for models not listed.' }
+];
+const profStore = Object.assign({ custom: [], edits: {}, hidden: [], cal: {} }, lsGet('wps.profiles', {}));
+const saveProf = () => lsSet('wps.profiles', profStore);
+const TOKF = { clip: 1, t5: 1.05, llm: 1, hosted: 1 };
+function allProfiles() {
+  const out = [];
+  for (const d of PROFILE_DEFAULTS) if (!profStore.hidden.includes(d.id)) out.push(Object.assign({}, d, profStore.edits[d.id] || {}, { builtin: true, modified: !!profStore.edits[d.id] }));
+  for (const c of profStore.custom) out.push(Object.assign({}, c, { builtin: false }));
+  return out;
+}
+function curProfile() { const a = allProfiles(); return a.find(p => p.id === ext.profile) || a[0] || null; }
+function estTokens(text, p) {
+  let n = 0; const re = /[A-Za-zÀ-ɏ']+|\d+|[^\sA-Za-z\d]/g; let m;
+  while ((m = re.exec(text))) {
+    const w = m[0];
+    if (/^[A-Za-zÀ-ɏ']/.test(w)) n += w.length <= 6 ? 1 : Math.ceil(w.length / 4.5);
+    else if (/^\d/.test(w)) n += Math.ceil(w.length / 2); else n += 1;
+  }
+  return Math.round(n * (TOKF[p && p.tok] || 1) * ((p && profStore.cal[p.id]) || 1));
+}
+const CONF_LABEL = { verified: 'verified', estimate: 'estimate', unverified: 'unverified' };
+function frontendNote(p, t) {
+  const f = ext.frontend;
+  if (p.chunk) {
+    const c = Math.max(1, Math.ceil(t / p.chunk));
+    return `${c} chunk${c > 1 ? 's' : ''} of ${p.chunk}` + (c > 1 && f === 'a1111' ? '. Forge/A1111 joins chunks; use BREAK to control where they split.' : c > 1 && f === 'comfy' ? '. ComfyUI joins chunks too.' : '');
+  }
+  if (p.hard && t > p.hard) return f === 'comfy' ? 'ComfyUI normally passes long prompts through, but quality or stability may drop.' : f === 'a1111' ? 'This frontend may chunk or truncate beyond the cutoff.' : 'It may be truncated.';
+  return '';
+}
+function updateGauge() {
+  const g = $('gauge'), p = curProfile(), text = S.final || '';
+  if (!p || !text.trim()) { g.classList.add('hidden'); return; }
+  const t = estTokens(text, p), rec = p.rec || 0, hard = p.hard || 0;
+  const max = Math.max(hard, rec, t) * 1.12 || 1, st = hard && t > hard ? 'bad' : rec && t > rec ? 'warn' : '';
+  g.classList.remove('hidden'); const bar = g.querySelector('.gbar'); bar.className = 'gbar ' + st;
+  bar.querySelector('i').style.width = (t / max * 100) + '%';
+  const m1 = bar.querySelector('.m1'), m2 = bar.querySelector('.m2');
+  m1.style.display = rec ? '' : 'none'; m1.style.left = (rec / max * 100) + '%'; m2.style.display = hard ? '' : 'none'; m2.style.left = (hard / max * 100) + '%';
+  const tx = g.querySelector('.gtxt'); tx.className = 'gtxt ' + st;
+  tx.textContent = `≈ ${t.toLocaleString()} tokens · ${p.name}: recommended ${rec ? rec.toLocaleString() : '–'}, cutoff ${hard ? hard.toLocaleString() : 'none stated'}`
+    + (p.conf !== 'verified' ? ` (${CONF_LABEL[p.conf] || 'unverified'})` : '') + (profStore.cal[p.id] ? ' · calibrated' : ' · estimated count')
+    + (frontendNote(p, t) ? ' · ' + frontendNote(p, t) : '') + (S.final && ext.negative.trim() ? '' : '');
+}
+function renderProfSelect() {
+  const sel = $('prof-sel'); sel.replaceChildren(); const groups = new Map();
+  for (const p of allProfiles()) { if (!groups.has(p.family)) groups.set(p.family, []); groups.get(p.family).push(p); }
+  for (const [fam, ps] of groups) { const og = document.createElement('optgroup'); og.label = fam; for (const p of ps) { const o = document.createElement('option'); o.value = p.id; o.textContent = p.name; og.appendChild(o); } sel.appendChild(og); }
+  const p = curProfile(); if (p) { ext.profile = p.id; sel.value = p.id; }
+  renderProfInfo(); updateGauge();
+}
+function renderProfInfo() {
+  const p = curProfile(), box = $('prof-info'); if (!p) { box.textContent = 'No profiles. Open Manage to add one.'; return; }
+  const w = { yes: 'weights work', no: 'ignores (word:1.2) weights', unsure: 'weight support unclear' }[p.weights], n = { yes: 'uses negative prompts', no: 'ignores negative prompts', weak: 'negative prompts barely work', unsure: 'negative support unclear' }[p.neg];
+  box.textContent = `${p.family} · ${p.style === 'tags' ? 'tag style' : 'sentence style'} · ${w} · ${n} · ${CONF_LABEL[p.conf] || ''}. ${p.note || ''}`;
+}
+$('prof-sel').addEventListener('change', () => { ext.profile = $('prof-sel').value; saveExt(); renderProfInfo(); updateGauge(); });
+$('btn-prof-apply').onclick = () => {
+  const p = curProfile(); if (!p) return;
+  opts.onePara = true; opts.tidy = p.style === 'tags'; ext.stripW = p.weights === 'no'; saveOpts(); saveExt(); syncOptInputs(); syncExtInputs(); refreshSample();
+  toast(`Set for ${p.name}: single paragraph on, tidy ${opts.tidy ? 'on' : 'off'}, weights ${ext.stripW ? 'removed' : 'kept'}.`, 'success');
+};
+$('btn-prof-cal').onclick = async () => {
+  const p = curProfile(); if (!p || !S.final) return toast('Make a sample first, then enter the token count your tool shows for it.', 'info');
+  const base = estTokens(S.final, p) / (profStore.cal[p.id] || 1);
+  const v = await askText(`Token count your tool reports for the sample shown (estimate: ${Math.round(base)}). Type reset to clear`, String(Math.round(base)));
+  if (v == null) return;
+  if (/^reset$/i.test(v.trim())) delete profStore.cal[p.id];
+  else { const n = parseFloat(v); if (!(n > 0)) return toast('Enter a number.', 'error'); profStore.cal[p.id] = Math.max(.3, Math.min(3, n / base)); }
+  saveProf(); updateGauge(); toast('Counter calibrated for ' + p.name, 'success');
+};
+$('btn-lencheck').onclick = async () => {
+  if (!ed.value.trim()) return; const p = curProfile(), N = 200, lens = []; const btn = $('btn-lencheck'); btn.disabled = true;
+  try {
+    for (let i = 0; i < N; i++) {
+      const seed = randomSeed(), tree = await evaluate(ed.value, seed, new Map(), newIssues());
+      lens.push(estTokens(await shapeFinal(finalize(flat(tree)), seed), p));
+      if (i % 20 === 0) { $('len-result').textContent = `Rolling… ${i}/${N}`; await tick(); }
+    }
+    $('len-result').textContent = lengthSummary(lens, p, true);
+  } finally { btn.disabled = false; }
+};
+function lengthSummary(lens, p, hist) {
+  const a = lens.slice().sort((x, y) => x - y), n = a.length; if (!n) return '';
+  const pct = q => a[Math.min(n - 1, Math.floor(q * n))], rec = p && p.rec, hard = p && p.hard;
+  let s = `${n} prompts, tokens: shortest ${a[0]}, typical ${pct(.5)}, 95% under ${pct(.95)}, longest ${a[n - 1]}.`;
+  if (rec) s += ` Over recommended (${rec}): ${a.filter(x => x > rec).length}.`;
+  if (hard) s += ` Over cutoff (${hard}): ${a.filter(x => x > hard).length}.`;
+  if (hist && a[0] !== a[n - 1]) {
+    const bins = 10, lo = a[0], w = (a[n - 1] - lo) / bins || 1, c = new Array(bins).fill(0); a.forEach(x => c[Math.min(bins - 1, Math.floor((x - lo) / w))]++);
+    const mx = Math.max(...c); s += '\n' + c.map((v, i) => `${String(Math.round(lo + i * w)).padStart(5)}+ ${'█'.repeat(Math.round(v / mx * 18))} ${v}`).join('\n');
+    $('len-result').style.whiteSpace = 'pre-wrap'; $('len-result').style.fontFamily = 'var(--mono)';
+  }
+  return s;
+}
+
+/* profile manager */
+function profBadge(p) { return (p.builtin ? '' : 'custom · ') + (CONF_LABEL[p.conf] || '') + (p.modified ? ' · edited' : ''); }
+function renderProfManager(editing) {
+  const body = $('prof-body'); body.replaceChildren();
+  if (editing) { renderProfForm(editing); return; }
+  const groups = new Map(); for (const p of allProfiles()) { if (!groups.has(p.family)) groups.set(p.family, []); groups.get(p.family).push(p); }
+  const tbl = mkEl('div', 'tbl'); body.appendChild(tbl);
+  for (const [fam, ps] of groups) {
+    const h = mkEl('div', 'tgrp'); h.appendChild(mkEl('span', '', fam));
+    h.append(mkBtn('Copy family…', 'btn-slate', async () => {
+      const nn = await askText('Name for the copy of this family', fam + ' copy'); if (!nn) return;
+      for (const p of ps) profStore.custom.push(Object.assign({}, p, { id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), family: nn, builtin: undefined, modified: undefined }));
+      saveProf(); renderProfSelect(); renderProfManager();
+    }), mkBtn('Delete family', 'btn-slate', () => {
+      if (!confirm(`Remove the “${fam}” family and its ${ps.length} profile(s)? Built-in ones can be brought back with “Revert all defaults”.`)) return;
+      for (const p of ps) { if (p.builtin) { if (!profStore.hidden.includes(p.id)) profStore.hidden.push(p.id); } else profStore.custom = profStore.custom.filter(c => c.id !== p.id); }
+      saveProf(); renderProfSelect(); renderProfManager();
+    }));
+    tbl.appendChild(h);
+    for (const p of ps) {
+      const r = mkEl('div', 'trow' + (p.id === ext.profile ? ' sel' : ''));
+      r.append(mkEl('span', 't', p.name), mkEl('span', 'm', `rec ${p.rec || '–'} · cutoff ${p.hard || '–'} · ${profBadge(p)}`));
+      r.append(mkBtn('Use', 'btn-indigo', () => { ext.profile = p.id; saveExt(); renderProfSelect(); renderProfManager(); }), mkBtn('Edit', 'btn-slate', () => renderProfManager(p)),
+        mkBtn('Copy', 'btn-slate', async () => {
+          const nn = await askText('Name for the copy', p.name + ' copy'); if (!nn) return;
+          const c = Object.assign({}, p, { id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: nn }); delete c.builtin; delete c.modified; profStore.custom.push(c); saveProf(); renderProfSelect(); renderProfManager();
+        }));
+      if (p.modified) r.appendChild(mkBtn('Revert', 'btn-slate', () => { delete profStore.edits[p.id]; saveProf(); renderProfSelect(); renderProfManager(); }, 'Back to the original values'));
+      r.appendChild(mkBtn('Delete', 'btn-slate', () => {
+        if (!confirm(`Delete “${p.name}”?` + (p.builtin ? ' You can bring it back with “Revert all defaults”.' : ''))) return;
+        if (p.builtin) profStore.hidden.push(p.id); else profStore.custom = profStore.custom.filter(c => c.id !== p.id);
+        saveProf(); renderProfSelect(); renderProfManager();
+      }));
+      tbl.appendChild(r);
+    }
+  }
+}
+function renderProfForm(p) {
+  const body = $('prof-body'), f = mkEl('div', 'form'), vals = {};
+  const field = (label, key, kind, choices) => {
+    f.appendChild(mkEl('label', '', label)); let el;
+    if (kind === 'select') { el = document.createElement('select'); for (const [v, t] of choices) { const o = document.createElement('option'); o.value = v; o.textContent = t; el.appendChild(o); } el.value = p[key] == null ? '' : p[key]; }
+    else if (kind === 'area') { el = document.createElement('textarea'); el.rows = 3; el.value = p[key] || ''; }
+    else { el = document.createElement('input'); el.type = kind; el.value = p[key] == null ? '' : p[key]; if (key === 'family') el.setAttribute('list', 'fam-list'); }
+    vals[key] = el; f.appendChild(el);
+  };
+  const dl = document.createElement('datalist'); dl.id = 'fam-list'; [...new Set(allProfiles().map(x => x.family))].forEach(v => { const o = document.createElement('option'); o.value = v; dl.appendChild(o); }); f.appendChild(dl);
+  field('Name', 'name', 'text'); field('Family', 'family', 'text');
+  field('Token counting', 'tok', 'select', [['clip', 'CLIP-style (tags, commas count)'], ['t5', 'T5 / sentencepiece'], ['llm', 'LLM tokenizer'], ['hosted', 'Hosted / unknown']]);
+  field('Recommended tokens', 'rec', 'number'); field('Hard cutoff (blank = none)', 'hard', 'number'); field('Chunk size (CLIP: 75)', 'chunk', 'number');
+  field('Prompt style', 'style', 'select', [['sentences', 'Sentences'], ['tags', 'Tags']]);
+  field('(word:1.2) weights', 'weights', 'select', [['yes', 'Work'], ['no', 'Ignored'], ['unsure', 'Unclear']]);
+  field('Negative prompt', 'neg', 'select', [['yes', 'Used'], ['weak', 'Barely works'], ['no', 'Ignored'], ['unsure', 'Unclear']]);
+  field('Confidence', 'conf', 'select', [['verified', 'Verified'], ['estimate', 'Estimate'], ['unverified', 'Unverified']]);
+  field('Notes', 'note', 'area');
+  const read = () => {
+    const o = {}; for (const [k, el] of Object.entries(vals)) o[k] = el.type === 'number' ? (el.value === '' ? null : Math.max(0, parseInt(el.value, 10) || 0)) : el.value;
+    if (!o.name.trim()) { toast('A profile needs a name.', 'error'); return null; } if (!o.family.trim()) o.family = 'Custom'; if (!o.chunk) o.chunk = 0; return o;
+  };
+  const row = mkEl('div', 'row'); row.style.justifyContent = 'flex-end'; row.style.marginTop = '.6rem';
+  row.append(mkBtn('Cancel', 'btn-slate', () => renderProfManager()),
+    mkBtn('Save as new…', 'btn-slate', async () => {
+      const o = read(); if (!o) return; const nn = await askText('Name for the new profile', o.name === p.name ? p.name + ' (mine)' : o.name); if (!nn) return;
+      o.name = nn; o.id = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); profStore.custom.push(o); ext.profile = o.id; saveProf(); saveExt(); renderProfSelect(); renderProfManager();
+    }),
+    mkBtn(p._new ? 'Add profile' : p.builtin ? 'Save changes to this default' : 'Save changes', 'btn-indigo', () => {
+      const o = read(); if (!o) return;
+      if (p._new) { o.id = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); profStore.custom.push(o); ext.profile = o.id; saveExt(); }
+      else if (p.builtin) profStore.edits[p.id] = o; else { const i = profStore.custom.findIndex(c => c.id === p.id); if (i >= 0) profStore.custom[i] = Object.assign({ id: p.id }, o); }
+      saveProf(); renderProfSelect(); renderProfManager();
+    }));
+  body.append(mkEl('h3', '', p.builtin ? `Edit “${p.name}” (original is kept; use Revert to undo)` : `Edit “${p.name}”`), f, row);
+}
+$('btn-prof-manage').onclick = () => { renderProfManager(); openModal('m-prof'); };
+$('prof-add').onclick = () => renderProfManager({ id: 'new', name: 'My model', family: 'Custom', tok: 'llm', rec: 512, hard: 1024, chunk: 0, weights: 'unsure', neg: 'unsure', style: 'sentences', conf: 'unverified', note: '', builtin: false, _new: true });
+$('prof-revert-all').onclick = () => { if (!confirm('Restore every built-in profile to its original values and bring back deleted ones? Your own profiles are kept.')) return; profStore.edits = {}; profStore.hidden = []; saveProf(); renderProfSelect(); renderProfManager(); toast('Defaults restored.', 'success'); };
+$('prof-export').onclick = () => saveSmall('templates', `model-profiles_${stamp()}.json`, JSON.stringify({ app: 'wps-profiles', profiles: profStore }, null, 2));
+$('prof-import').onclick = () => $('prof-file').click();
+$('prof-file').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const j = JSON.parse(await f.text()); if (j.app !== 'wps-profiles' || !j.profiles) throw new Error('not a profile file');
+    const inc = j.profiles; for (const c of inc.custom || []) if (!profStore.custom.some(x => x.id === c.id)) profStore.custom.push(c);
+    Object.assign(profStore.edits, inc.edits || {}); Object.assign(profStore.cal, inc.cal || {}); saveProf(); renderProfSelect(); renderProfManager(); toast('Profiles imported.', 'success');
+  } catch (err) { toast('Could not import: ' + err.message, 'error'); }
+});
+/* ---------- shaping: prefix, suffix, negative, weight stripping ---------- */
+const WEIGHT_RE = /\(([^()]+?):\s*-?\d+(?:\.\d+)?\)/g;
+function stripWeights(t) { let prev; do { prev = t; t = t.replace(WEIGHT_RE, '$1'); } while (t !== prev); return t; }
+function needStrip() { const p = curProfile(); return ext.stripW && p && p.weights === 'no'; }
+async function evalPlain(text, seed) {
+  if (!text || !text.trim()) return '';
+  if (!/__|\$\{|\{/.test(text)) return text.trim();
+  const t = await evaluate(text, seed, new Map(), newIssues()); return finalize(flat(t));
+}
+async function affixes(seed) {
+  return { pre: await evalPlain(ext.prefix, xmur3(seed + '|pre')), suf: await evalPlain(ext.suffix, xmur3(seed + '|suf')), neg: await evalPlain(ext.negative, xmur3(seed + '|neg')) };
+}
+function applyShape(line, af) {
+  let t = needStrip() ? stripWeights(line) : line;
+  return finalize([af.pre, t, af.suf].filter(Boolean).join(' '));
+}
+async function shapeFinal(line, seed) { return applyShape(line, await affixes(seed)); }
+function syncExtInputs() {
+  document.querySelectorAll('[data-ext]').forEach(el => { const k = el.dataset.ext; if (el.type === 'checkbox') el.checked = !!ext[k]; else el.value = ext[k] == null ? '' : ext[k]; });
+  const sel = $('prof-sel'); if (sel.options.length) { const p = curProfile(); if (p) sel.value = p.id; }
+}
+function syncOptInputs() {
+  document.querySelectorAll('[data-opt]').forEach(el => { const k = el.dataset.opt; if (el.type === 'checkbox') el.checked = !!opts[k]; else el.value = opts[k]; });
+}
+document.querySelectorAll('[data-ext]').forEach(el => {
+  const k = el.dataset.ext;
+  el.addEventListener(el.tagName === 'SELECT' || el.type === 'checkbox' ? 'change' : 'input', () => {
+    ext[k] = el.type === 'checkbox' ? el.checked : el.type === 'number' ? Math.max(0, parseInt(el.value, 10) || 0) : el.value; saveExt();
+    if (['prefix', 'suffix', 'negative', 'stripW', 'frontend'].includes(k)) refreshSampleSoon();
+    if (k === 'frontend') updateGauge();
+  });
+});
+
+/* ---------- exports: records, formats, split files ---------- */
+function picksOf(tree) {
+  const out = [], seen = new Set();
+  const walk = nodes => {
+    for (const n of nodes) {
+      if (n.k === 'wc') out.push({ name: n.name, value: flat(n.kids).replace(/\s+/g, ' ').trim() });
+      else if (n.k === 'def' || n.k === 'use') { if (!seen.has(n.name)) { seen.add(n.name); out.push({ name: '$' + n.name, value: flat(n.kids).replace(/\s+/g, ' ').trim() }); } }
+      else if (n.k === 'choice') walk(n.kids);
+    }
+  };
+  walk(tree); return out;
+}
+async function buildRecord(i, seed, forced) {
+  const tree = await evaluate(ed.value, seed, new Map(), newIssues(), forced || null);
+  const af = await affixes(seed), prompt = applyShape(finalize(flat(tree)), af);
+  return { n: i + 1, seed, prompt, negative: af.neg, picks: picksOf(tree) };
+}
+const csvCell = v => { v = String(v == null ? '' : v); return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+function serializeRecords(part, fmt, startN) {
+  if (fmt === 'csv') return '﻿' + ['n,seed,prompt,negative,picks'].concat(part.map((r, i) => [startN + i, r.seed, r.prompt, r.negative, r.picks.map(p => p.name + '=' + p.value).join('; ')].map(csvCell).join(','))).join(eol()) + eol();
+  if (fmt === 'json') {
+    const p = curProfile();
+    return JSON.stringify({ app: 'Wildcard Prompt Studio v2.5', template: S.tpl.name, model: p ? p.name : null, created: new Date().toISOString(), count: part.length,
+      items: part.map((r, i) => ({ n: startN + i, seed: r.seed, prompt: r.prompt, negative: r.negative || undefined, picks: Object.fromEntries(r.picks.map(x => [x.name, x.value])) })) }, null, 2) + eol();
+  }
+  return part.map(r => (opts.batchSeedPrefix ? `${r.seed} | ` : '') + r.prompt).join(eol()) + eol();
+}
+async function writeRecords(recs, base, folderKind) {
+  const fmt = ext.fmt, per = ext.split > 0 ? ext.split : (recs.length || 1), parts = [];
+  for (let i = 0; i < recs.length; i += per) parts.push(recs.slice(i, i + per));
+  const where = [];
+  for (let k = 0; k < parts.length; k++) {
+    const name = base + (parts.length > 1 ? `_part${String(k + 1).padStart(String(parts.length).length, '0')}` : '') + '.' + fmt;
+    const sink = await openSink(folderKind, name); if (!sink) return null;
+    try { await sink.write(serializeRecords(parts[k], fmt, k * per + 1)); await sink.close(); where.push(sink.where); } catch (e) { await sink.abort(); throw e; }
+    if (fmt === 'txt' && ext.negFile && ext.negative.trim()) {
+      const ns = await openSink(folderKind, name.replace(/\.txt$/, '_negative.txt'));
+      if (ns) { try { await ns.write(parts[k].map(r => r.negative).join(eol()) + eol()); await ns.close(); } catch (e) { await ns.abort(); throw e; } }
+    }
+  }
+  return where;
+}
+async function runExport(o) {
+  const mine = job[o.key] = { cancel: false }; const btn = $(o.btn), cbtn = $(o.btn + '-cancel') || $(o.cancelBtn);
+  btn.disabled = true; cbtn.classList.remove('hidden'); const recs = []; let fails = 0;
+  try {
+    for (let i = 0; i < o.total && !mine.cancel; i++) {
+      const r = await o.make(i, recs);
+      if (r === null) { if (++fails >= 5) break; i--; continue; } fails = 0; recs.push(r);
+      if (i % 10 === 0 || i === o.total - 1) { setProg(o.prog, true, Math.round(recs.length / o.total * 100), `${recs.length} / ${o.total}`); await tick(); }
+    }
+    if (mine.cancel) { toast('Cancelled. Nothing was saved.', 'info'); return; }
+    if (!recs.length) { toast('Nothing to save.', 'error'); return; }
+    const where = await writeRecords(recs, o.base, 'batch'); if (!where) return;
+    const p = curProfile(), lens = recs.map(r => estTokens(r.prompt, p));
+    toast(`Saved ${recs.length} prompts to ${where.length > 1 ? where.length + ' files in ' : ''}${where[0]}` + (recs.length < o.total ? ' (fewer unique prompts were possible)' : ''), 'success');
+    const st = $('batch-stats'); st.style.whiteSpace = 'pre-wrap'; st.style.fontFamily = ''; st.textContent = lengthSummary(lens, p, false);
+    $('batch-preview').textContent = recs.slice(0, 10).map(r => r.prompt).join('\n') + (recs.length > 10 ? `\n… and ${recs.length - 10} more` : ''); $('batch-preview-wrap').classList.remove('hidden');
+  } catch (e) { toast('Export failed: ' + e.message, 'error'); }
+  finally { btn.disabled = false; cbtn.classList.add('hidden'); setTimeout(() => setProg(o.prog, false, 0, ''), 1500); }
+}
+$('btn-batch').onclick = () => {
+  if (!ed.value.trim()) return toast('The template is empty.', 'error');
+  const count = Math.min(1000, Math.max(1, parseInt($('batch-count').value, 10) || 50)); $('batch-count').value = count; opts.batchCount = count; saveOpts();
+  const seen = new Set();
+  return runExport({ key: 'batch', btn: 'btn-batch', prog: 'batch', total: count, base: `batch_${tplSlug()}_${count}_${stamp()}`,
+    async make(i) {
+      for (let attempt = 0; attempt < 30; attempt++) {
+        const seed = opts.batchRepro ? xmur3(`${S.seed}:${i}:${attempt}`) : randomSeed(), r = await buildRecord(i, seed);
+        if (!opts.batchUnique || !seen.has(r.prompt)) { seen.add(r.prompt); return r; }
+      }
+      return null;
+    } });
+};
+$('btn-batch-cancel').onclick = () => { if (job.batch) job.batch.cancel = true; };
+
+/* sweep: one wildcard enumerated, everything else random */
+function sweepCandidates() {
+  const out = new Map(); if (!ed.value.trim()) return out;
+  const walk = nodes => { for (const n of nodes) { if (n.t === 'wc') { const e = resolve(n.name); if (e) out.set(e.key, e); } else if (n.t === 'choice') n.opts.forEach(walk); else if (n.t === 'def') walk(n.body); } };
+  try { walk(parse(ed.value, opts.inline)); } catch { /* ignore */ }
+  return out;
+}
+function keysFor(tree, target, acc = new Set()) {
+  for (const n of tree) {
+    if (n.k === 'wc') { if (n.entry.key === target) acc.add(n.key); }
+    else if (n.k === 'choice' || n.k === 'def' || n.k === 'use') keysFor(n.kids, target, acc);
+  }
+  return acc;
+}
+async function updateSweepList() {
+  const sel = $('sweep-sel'), prev = sel.value, c = sweepCandidates(); sel.replaceChildren();
+  for (const [k, e] of c) { const o = document.createElement('option'); o.value = k; o.textContent = e.path.replace(/\.txt$/i, ''); sel.appendChild(o); }
+  if (!c.size) { const o = document.createElement('option'); o.textContent = '(no wildcards in the template)'; o.value = ''; sel.appendChild(o); }
+  if (prev && c.has(prev)) sel.value = prev; updateSweepCount();
+}
+async function updateSweepCount() {
+  const e = S.index.get($('sweep-sel').value), rep = Math.max(1, parseInt($('sweep-rep').value, 10) || 1);
+  if (!e) { $('sweep-count').textContent = '–'; $('btn-sweep').disabled = true; return; }
+  await loadEntry(e); $('btn-sweep').disabled = false; $('sweep-count').textContent = `${e.act.length.toLocaleString()} values × ${rep} = ${(e.act.length * rep).toLocaleString()} prompts`;
+}
+$('sweep-sel').addEventListener('change', updateSweepCount); $('sweep-rep').addEventListener('input', updateSweepCount);
+$('btn-sweep').onclick = async () => {
+  const e = S.index.get($('sweep-sel').value); if (!e) return; await loadEntry(e);
+  const rep = Math.max(1, Math.min(100, parseInt($('sweep-rep').value, 10) || 1)), idxs = e.act.slice();
+  if (idxs.length * rep > 50000 && !confirm(`This will write ${(idxs.length * rep).toLocaleString()} prompts. Continue?`)) return;
+  const nm = e.path.replace(/\.txt$/i, '').split('/').pop();
+  return runExport({ key: 'sweep', btn: 'btn-sweep', cancelBtn: 'btn-sweep-cancel', prog: 'sweep', total: idxs.length * rep, base: `sweep-${safeName(nm, '').replace(/\.$/, '')}_${tplSlug()}_${stamp()}`,
+    async make(i) {
+      const li = idxs[Math.floor(i / rep)], seed = opts.batchRepro ? xmur3(`${S.seed}:${i}`) : randomSeed();
+      const dry = await evaluate(ed.value, seed, new Map(), newIssues()), keys = keysFor(dry, e.key);
+      const forced = new Map([...keys].map(k => [k, li])); const r = await buildRecord(i, seed, forced); r.swept = e.lines[li]; return r;
+    } });
+};
+$('btn-sweep-cancel').onclick = () => { if (job.sweep) job.sweep.cancel = true; };
+
+/* ---------- history and favourites ---------- */
+let hist = [], favs = [], histView = 'h';
+function snapSample() { return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), ts: Date.now(), name: S.tpl.name, seed: S.seed, ov: [...S.overrides], fo: [...S.forced], lk: [...S.locks], text: S.final, tpl: ed.value }; }
+function pushHistory() {
+  if (!S.final) return; if (hist[0] && hist[0].text === S.final && hist[0].tpl === ed.value) return;
+  hist.unshift(snapSample()); if (hist.length > 60) hist.length = 60; kv.set('hist', hist);
+}
+$('btn-fav').onclick = () => {
+  if (!S.final) return toast('Nothing to keep yet.', 'error');
+  favs.unshift(snapSample()); if (favs.length > 500) favs.length = 500; kv.set('favs', favs); toast('Kept in History → Favourites', 'success');
+};
+function restoreSample(h) {
+  if (ed.value !== h.tpl) { const t = curTab(); if (t) { captureTab(); snapshotVersion(t, 'before restore'); } ed.value = h.tpl; setTplName(h.name); markDirty(); highlight(); scheduleCount(); }
+  S.seed = h.seed; $('seed').value = S.seed; S.overrides = new Map(h.ov); S.forced = new Map(h.fo); S.locks = new Set(h.lk); closeModal('m-hist');
+  refreshSample().then(() => { if (S.final !== h.text) toast('Restored, but the result differs: wildcard files or output settings have changed since then.', 'info'); else toast('Sample restored exactly.', 'success'); });
+}
+function renderHistory() {
+  const list = histView === 'h' ? hist : favs, box = $('hist-body'); box.replaceChildren();
+  $('hist-tab-h').className = 'btn btn-sm ' + (histView === 'h' ? 'btn-indigo' : 'btn-slate'); $('hist-tab-f').className = 'btn btn-sm ' + (histView === 'f' ? 'btn-indigo' : 'btn-slate');
+  $('hist-note').textContent = histView === 'h' ? 'The last 60 samples you rolled past, copied or saved. Restore brings back the template, seed, locks and chosen lines.' : 'Samples you kept with ★ Keep. They store the template too, so Restore works even after you change it.';
+  if (!list.length) { box.appendChild(mkEl('div', 'trow', histView === 'h' ? 'Nothing yet. Roll a few samples.' : 'Nothing kept yet. Press ★ Keep on a sample you like.')); return; }
+  for (const h of list) {
+    const r = mkEl('div', 'trow'); const t = mkEl('div', 't'); t.appendChild(mkEl('div', '', clipTxt(h.text, 260))); t.appendChild(mkEl('div', 'm', `${fmtTime(h.ts)} · ${h.name} · seed ${h.seed}${h.label ? ' · ' + h.label : ''}`));
+    r.append(t, mkBtn('Restore', 'btn-indigo', () => restoreSample(h)), mkBtn('Copy', 'btn-slate', () => copyText(h.text)));
+    if (histView === 'h') r.appendChild(mkBtn('★', 'btn-slate', () => { favs.unshift(h); kv.set('favs', favs); toast('Kept', 'success'); }, 'Keep as favourite'));
+    else r.appendChild(mkBtn('Name…', 'btn-slate', async () => { const v = await askText('Label', h.label || ''); if (v != null) { h.label = v; kv.set('favs', favs); renderHistory(); } }));
+    r.appendChild(mkBtn('✕', 'btn-slate', () => { list.splice(list.indexOf(h), 1); kv.set(histView === 'h' ? 'hist' : 'favs', list); renderHistory(); }, 'Delete'));
+    box.appendChild(r);
+  }
+}
+$('btn-history').onclick = () => { pushHistory(); renderHistory(); openModal('m-hist'); };
+$('hist-tab-h').onclick = () => { histView = 'h'; renderHistory(); }; $('hist-tab-f').onclick = () => { histView = 'f'; renderHistory(); };
+$('hist-clear').onclick = () => { if (!confirm(histView === 'h' ? 'Clear the history?' : 'Delete ALL favourites?')) return; if (histView === 'h') { hist = []; kv.set('hist', hist); } else { favs = []; kv.set('favs', favs); } renderHistory(); };
+$('hist-export').onclick = () => { const l = histView === 'h' ? hist : favs; if (!l.length) return; saveSmall('samples', `${histView === 'h' ? 'history' : 'favourites'}_${stamp()}.txt`, l.map(h => h.text.replace(/\s*[\r\n]+\s*/g, ' ')).join(eol()) + eol()); };
+
+/* ---------- library tools ---------- */
+const lib = { tab: 's' };
+function dedupeText(text) {
+  const seen = new Set(); let removed = 0; const out = [];
+  for (const line of text.split(/\r?\n/)) { const k = line.trim(); if (!k || k.startsWith('#')) { out.push(line); continue; } if (seen.has(k)) { removed++; continue; } seen.add(k); out.push(line); }
+  return { text: out.join('\n'), removed };
+}
+$('insp-dedupe') && ($('insp-dedupe').onclick = () => { const r = dedupeText($('insp-text').value); $('insp-text').value = r.text; updateInspectorMeta(); toast(r.removed ? `Removed ${r.removed} duplicate line${r.removed === 1 ? '' : 's'}. Press Save file to keep the change.` : 'No duplicate lines.', r.removed ? 'success' : 'info'); });
+async function loadAllEntries() {
+  const ents = [...S.index.values()]; let i = 0, bar = $('lib-prog');
+  for (const e of ents) { await loadEntry(e); if (++i % 25 === 0) { bar.textContent = `Reading files… ${i} / ${ents.length}`; await tick(); } }
+  bar.textContent = ''; return ents;
+}
+function refTargets(e) {                      // wildcard names referenced by the lines of e (raw names)
+  const out = []; const re = tagRe('g');
+  e.lines.forEach((l, i) => { re.lastIndex = 0; let m; while ((m = re.exec(l))) out.push({ name: normName(m[1]), line: i }); });
+  return out;
+}
+function libTabs() { for (const [id, k] of [['lib-tab-s', 's'], ['lib-tab-h', 'h'], ['lib-tab-w', 'w']]) $(id).className = 'btn btn-sm ' + (lib.tab === k ? 'btn-indigo' : 'btn-slate'); }
+async function renderLibrary() {
+  libTabs(); const box = $('lib-body'); box.replaceChildren();
+  if (!S.index.size) { box.appendChild(mkEl('div', 'trow', 'Choose a wildcard folder first.')); return; }
+  if (lib.tab === 's') renderLibSearch(box); else if (lib.tab === 'h') await renderLibHealth(box); else await renderLibWhere(box);
+}
+function fileLink(key, label) { const a = mkEl('button', 'btn btn-slate btn-sm', label || key); a.onclick = () => { closeModal('m-lib'); selectEntry(key); }; return a; }
+function renderLibSearch(box) {
+  const q = mkEl('div', 'lib-q'), inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Search every line of every wildcard file…'; inp.spellcheck = false;
+  const rx = document.createElement('label'); rx.className = 'chk'; rx.innerHTML = '<input type="checkbox" /> <span>Regular expression</span>';
+  const go = mkBtn('Search', 'btn-indigo', run); q.append(inp, rx, go); const res = mkEl('div', 'tbl'); box.append(q, res); inp.focus();
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+  async function run() {
+    const term = inp.value; res.replaceChildren(); if (!term) return;
+    let test; try { if (rx.querySelector('input').checked) { const r = new RegExp(term, 'i'); test = l => r.test(l); } else { const t = term.toLowerCase(); test = l => l.toLowerCase().includes(t); } } catch (e) { res.appendChild(mkEl('div', 'trow', 'Invalid expression: ' + e.message)); return; }
+    const ents = await loadAllEntries(); let n = 0, files = new Set();
+    outer: for (const e of ents) for (let i = 0; i < e.lines.length; i++) if (test(e.lines[i])) {
+      const r = mkEl('div', 'trow'); r.append(mkEl('span', 't', clipTxt(e.lines[i], 300)), mkEl('span', 'm', `${e.path.replace(/\.txt$/i, '')} · line ${i + 1}`), fileLink(e.key, 'Open'));
+      res.appendChild(r); files.add(e.key); if (++n >= 500) break outer;
+    }
+    res.prepend(mkEl('div', 'trow', n ? `${n >= 500 ? 'First 500 matches' : n + ' match' + (n === 1 ? '' : 'es')} in ${files.size} file${files.size === 1 ? '' : 's'}` : 'No matches.'));
+  }
+}
+async function renderLibHealth(box) {
+  const ents = await loadAllEntries(); const rep = [];
+  const add = (title, kind, rows, hint) => { if (rows.length) rep.push({ title, kind, rows, hint }); };
+  const tplNames = new Set([...ed.value.matchAll(tagRe('g'))].map(m => normName(m[1]))); const used = new Set(); const graph = new Map();
+  const empty = [], single = [], dups = [], nearDups = [], long = [], brace = [], missing = [];
+  for (const e of ents) {
+    if (!e.act.length) empty.push({ key: e.key, text: 'No usable lines' });
+    else if (e.lines.length === 1) single.push({ key: e.key, text: 'Only one line' });
+    const seen = new Map(), low = new Map(); let d = 0, nd = 0;
+    for (const l of e.lines) { const k = l.trim(); seen.set(k, (seen.get(k) || 0) + 1); }
+    for (const c of seen.values()) if (c > 1) d += c - 1;
+    for (const k of seen.keys()) { const lk = k.toLowerCase().replace(/\s+/g, ' '); low.set(lk, (low.get(lk) || 0) + 1); }
+    nd = [...low.values()].reduce((t, c) => t + (c > 1 ? c - 1 : 0), 0) - d; if (nd < 0) nd = 0;
+    if (d) dups.push({ key: e.key, text: `${d} duplicate line${d === 1 ? '' : 's'}`, fix: true }); else if (nd) nearDups.push({ key: e.key, text: `${nd} lines differ only by case or spacing` });
+    const lg = e.lines.filter(l => l.length > 500).length; if (lg) long.push({ key: e.key, text: `${lg} line${lg === 1 ? '' : 's'} over 500 characters` });
+    if (opts.inline) { const b = e.lines.filter(l => (l.match(/\{/g) || []).length !== (l.match(/\}/g) || []).length).length; if (b) brace.push({ key: e.key, text: `${b} line${b === 1 ? '' : 's'} with unbalanced { }` }); }
+    const targets = new Set(); const miss = new Set();
+    for (const t of refTargets(e)) { const r = resolve(t.name); if (r) { targets.add(r.key); used.add(r.key); } else miss.add(t.name); }
+    graph.set(e.key, targets); if (miss.size) missing.push({ key: e.key, text: 'Points to missing: ' + [...miss].slice(0, 6).map(x => `__${x}__`).join(', ') + (miss.size > 6 ? ` +${miss.size - 6} more` : '') });
+  }
+  for (const n of tplNames) { const r = resolve(n); if (r) used.add(r.key); }
+  // cycles
+  const cyc = [], state = new Map();
+  const dfs = (k, path) => { state.set(k, 1); for (const t of graph.get(k) || []) { if (state.get(t) === 1) { cyc.push({ key: k, text: 'Part of a loop: ' + [...path.slice(path.indexOf(t) < 0 ? 0 : path.indexOf(t)), k, t].map(x => x.split('/').pop()).join(' → ') }); } else if (!state.get(t)) dfs(t, path.concat(k)); } state.set(k, 2); };
+  for (const k of graph.keys()) if (!state.get(k)) dfs(k, []);
+  const unused = ents.filter(e => !used.has(e.key)).map(e => ({ key: e.key, text: 'Not used by any wildcard or the current template' }));
+  add('Empty files', 'bad', empty); add('Pointing to files that do not exist', 'bad', missing); add('Loops', 'bad', cyc);
+  add('Duplicate lines', 'warn', dups, 'Duplicates make a line more likely to be picked. Use “Remove duplicates” in the file viewer, then Save.');
+  add('Unbalanced braces', 'warn', brace); add('Very long lines', 'warn', long); add('Near-duplicates (case or spacing)', 'info', nearDups); add('Single-line files', 'info', single);
+  add('Not used anywhere (may be entry points you call from templates)', 'info', unused);
+  box.appendChild(mkEl('div', 'trow', `${ents.length.toLocaleString()} files, ${ents.reduce((t, e) => t + e.lines.length, 0).toLocaleString()} lines checked.` + (rep.length ? '' : ' No problems found.')));
+  for (const g of rep) {
+    const h = mkEl('div', 'tgrp'); h.append(mkEl('span', '', g.title), mkEl('span', 'badge ' + (g.kind === 'bad' ? 'badge-bad' : g.kind === 'warn' ? 'badge-warn' : 'badge-indigo'), String(g.rows.length))); box.appendChild(h);
+    if (g.hint) box.appendChild(mkEl('div', 'm', g.hint));
+    for (const r of g.rows.slice(0, 150)) {
+      const row = mkEl('div', 'trow'); row.append(mkEl('span', 't', r.key.split('/').pop() + (r.key.includes('/') ? '  (' + r.key + ')' : '')), mkEl('span', 'm', r.text), fileLink(r.key, 'Open'));
+      if (r.fix) row.appendChild(mkBtn('Open and remove duplicates', 'btn-indigo', async () => { closeModal('m-lib'); await selectEntry(r.key); $('insp-dedupe').click(); }));
+      box.appendChild(row);
+    }
+    if (g.rows.length > 150) box.appendChild(mkEl('div', 'm', `…and ${g.rows.length - 150} more`));
+  }
+}
+async function renderLibWhere(box, pre) {
+  const ents = await loadAllEntries(); const q = mkEl('div', 'lib-q'), sel = document.createElement('select'); sel.style.flex = '1';
+  for (const e of [...ents].sort((a, b) => a.path.localeCompare(b.path))) { const o = document.createElement('option'); o.value = e.key; o.textContent = e.path.replace(/\.txt$/i, ''); sel.appendChild(o); }
+  sel.value = pre || S.selected || sel.value; q.append(mkEl('span', '', 'Which wildcard?'), sel); const res = mkEl('div', 'tbl'); box.append(q, res);
+  const rev = new Map(); for (const e of ents) for (const t of refTargets(e)) { const r = resolve(t.name); if (!r) continue; if (!rev.has(r.key)) rev.set(r.key, new Map()); const m = rev.get(r.key); m.set(e.key, (m.get(e.key) || 0) + 1); }
+  const show = () => {
+    res.replaceChildren(); const m = rev.get(sel.value) || new Map();
+    const tn = [...ed.value.matchAll(tagRe('g'))].filter(x => { const r = resolve(normName(x[1])); return r && r.key === sel.value; }).length;
+    res.appendChild(mkEl('div', 'trow', `Used by ${m.size} wildcard file${m.size === 1 ? '' : 's'}; ${tn ? `the current template uses it ${tn} time${tn === 1 ? '' : 's'}` : 'not in the current template'}.`));
+    for (const [k, c] of m) { const r = mkEl('div', 'trow'); r.append(mkEl('span', 't', k), mkEl('span', 'm', `${c} line${c === 1 ? '' : 's'}`), fileLink(k, 'Open')); res.appendChild(r); }
+  };
+  sel.onchange = show; show();
+}
+$('btn-library').onclick = () => { openModal('m-lib'); renderLibrary(); };
+$('lib-tab-s').onclick = () => { lib.tab = 's'; renderLibrary(); }; $('lib-tab-h').onclick = () => { lib.tab = 'h'; renderLibrary(); };
+$('lib-tab-w').onclick = () => { lib.tab = 'w'; renderLibrary(); };
+$('insp-where') && ($('insp-where').onclick = () => { lib.tab = 'w'; openModal('m-lib'); libTabs(); const box = $('lib-body'); box.replaceChildren(); renderLibWhere(box, S.selected); });
+/* auto-rescan when the window regains focus */
+async function sigFrom(out) { const parts = []; for (const it of out) { try { const f = await it.src.getFile(); parts.push(`${it.path}|${f.size}|${f.lastModified}`); } catch { parts.push(it.path); } } return parts.sort().join(';'); }
+let lastAuto = 0, autoBusy = false;
+function inspectorDirty() { const e = S.index.get(S.selected); return !!(e && !$('inspector').classList.contains('hidden') && typeof e.raw === 'string' && $('insp-text').value !== e.raw && $('insp-text').value !== 'Loading…'); }
+window.addEventListener('focus', async () => {
+  if (!opts.autoRescan || S.source !== 'folder' || !S.handles.wildcards || autoBusy || Date.now() - lastAuto < 4000) return;
+  autoBusy = true;
+  try {
+    const h = S.handles.wildcards; if ((await h.queryPermission({ mode: 'read' })) !== 'granted') return;
+    const out = []; await walkDir(h, '', opts.subfolders, out); const sig = await sigFrom(out); lastAuto = Date.now();
+    if (S.sig == null) { S.sig = sig; return; } if (sig === S.sig) return;
+    if (inspectorDirty()) { toast('Wildcard files changed on disk. Save or close the open file, then press Rescan.', 'info'); return; }
+    S.sig = sig; const keep = S.selected; installIndex(out, 'folder'); if (keep && S.index.has(keep)) selectEntry(keep);
+    toast(`Wildcard folder changed. List refreshed (${out.length} files).`, 'info');
+  } catch { /* ignore */ } finally { autoBusy = false; }
+});
+
+/* ---------- template tabs ---------- */
+const T = { tabs: [], active: null };
+const newId = () => 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+const newTabObj = (name = 'untitled-prompt', text = '') => ({ id: newId(), name, text, dirty: false, seed: null, handle: null, x: { prefix: '', suffix: '', negative: '', profile: ext.profile } });
+const curTab = () => T.tabs.find(t => t.id === T.active) || null;
+function captureTab() {
+  const t = curTab(); if (!t) return;
+  t.text = ed.value; t.name = S.tpl.name; t.dirty = S.tpl.dirty; t.handle = S.tpl.handle; t.seed = S.seed;
+  t.x = { prefix: ext.prefix, suffix: ext.suffix, negative: ext.negative, profile: ext.profile };
+}
+const tabsPersist = debounce(() => {
+  captureTab();
+  kv.set('tabs', { active: T.active, tabs: T.tabs.map(t => ({ id: t.id, name: t.name, text: t.text, dirty: t.dirty, seed: t.seed, x: t.x })) });
+}, 600);
+const autoSnap = debounce(() => { captureTab(); snapshotVersion(curTab(), 'auto'); }, 20000);
+function tabsTouch() { if (!T.tabs.length) return; captureTab(); renderTabs(); tabsPersist(); autoSnap(); }
+function renderTabs() {
+  const box = $('tabs'); box.replaceChildren();
+  for (const t of T.tabs) {
+    const on = t.id === T.active, el = mkEl('div', 'tab' + (on ? ' on' : ''));
+    const dirty = on ? S.tpl.dirty : t.dirty, name = on ? S.tpl.name : t.name;
+    el.title = name; if (dirty) el.appendChild(mkEl('span', 'dot', '●'));
+    const txt = on ? ed.value : t.text; el.appendChild(mkEl('span', 'nm', (!name || name === 'untitled-prompt') ? (txt.trim().replace(/\s+/g, ' ').slice(0, 20) || 'untitled') : name));
+    const x = mkEl('button', 'x', '✕'); x.title = 'Close tab'; x.onclick = ev => { ev.stopPropagation(); closeTab(t.id); }; el.appendChild(x);
+    el.onclick = () => { if (!on) showTab(t.id); };
+    el.onauxclick = ev => { if (ev.button === 1) closeTab(t.id); };
+    box.appendChild(el);
+  }
+  const add = mkEl('button', 'tab-add', '+'); add.title = 'New template tab'; add.onclick = () => { addTab(); ed.focus(); }; box.appendChild(add);
+}
+function showTab(id) {
+  captureTab(); closeFloaters(); T.active = id; const t = curTab(); if (!t) return;
+  ed.value = t.text; setTplName(t.name); S.tpl.handle = t.handle; S.tpl.dirty = !!t.dirty; $('dirty').classList.toggle('hidden', !t.dirty);
+  if (t.seed != null) { S.seed = t.seed; $('seed').value = S.seed; }
+  Object.assign(ext, { prefix: '', suffix: '', negative: '' }, t.x || {}); if (!allProfiles().some(p => p.id === ext.profile)) ext.profile = (allProfiles()[0] || {}).id;
+  syncExtInputs(); renderProfSelect();
+  S.overrides.clear(); S.locks.clear(); S.forced.clear(); S.exp.clear(); highlight(); refreshSample(); scheduleCount(); renderTabs(); tabsPersist(); lsSet('wps.draft', { text: t.text, name: t.name });
+}
+function addTab(name, text, handle) {
+  captureTab(); const t = newTabObj(name || 'untitled-prompt', text || ''); t.handle = handle || null; t.x = { prefix: '', suffix: '', negative: '', profile: ext.profile }; T.tabs.push(t); showTab(t.id);
+}
+function closeTab(id) {
+  const i = T.tabs.findIndex(t => t.id === id); if (i < 0) return; if (id === T.active) captureTab(); const t = T.tabs[i];
+  if (t.dirty && t.text.trim() && !confirm(`“${t.name}” has unsaved changes. Close it anyway? (A version is kept in Versions.)`)) return;
+  snapshotVersion(t, 'closed'); T.tabs.splice(i, 1);
+  if (!T.tabs.length) T.tabs.push(newTabObj());
+  if (id === T.active) { T.active = null; showTab(T.tabs[Math.min(i, T.tabs.length - 1)].id); } else { renderTabs(); tabsPersist(); }
+}
+function loadIntoTabs(text, name, handle) {              // used by Open: a fresh tab unless the current one is empty
+  const t = curTab(); if (t && !ed.value.trim() && !S.tpl.dirty) { t.handle = null; ed.value = text.replace(/\r\n?/g, '\n'); setTplName(name.replace(/\.txt$/i, '')); S.tpl.handle = handle || null; S.tpl.dirty = false; $('dirty').classList.add('hidden'); S.overrides.clear(); S.locks.clear(); S.forced.clear(); S.exp.clear(); highlight(); refreshSample(); scheduleCount(); tabsTouch(); return; }
+  addTab(name.replace(/\.txt$/i, ''), text.replace(/\r\n?/g, '\n'), handle);
+}
+
+/* ---------- versions ---------- */
+let vers = {};
+function snapshotVersion(t, label) {
+  if (!t || !t.text || !t.text.trim()) return; const a = vers[t.id] || (vers[t.id] = []);
+  if (a[0] && a[0].text === t.text) { if (label && label !== 'auto' && (!a[0].label || a[0].label === 'auto')) { a[0].label = label; a[0].pin = true; kv.set('vers', vers); } return; }
+  a.unshift({ ts: Date.now(), text: t.text, name: t.name, label: label || '', pin: !!label && label !== 'auto' });
+  let autos = 0; for (let i = 0; i < a.length; i++) if (!a[i].pin && ++autos > 30) { a.splice(i, 1); i--; }
+  while (a.filter(v => v.pin).length > 60) { const k = a.map((v, i) => v.pin ? i : -1).filter(i => i >= 0).pop(); a.splice(k, 1); }
+  let total = Object.values(vers).flat().reduce((s, v) => s + v.text.length, 0);
+  while (total > 3e6) { let big = null; for (const k of Object.keys(vers)) if (vers[k].length > 1 && (!big || vers[k].length > vers[big].length)) big = k; if (!big) break; total -= vers[big].pop().text.length; }
+  kv.set('vers', vers);
+}
+let versSel = null;
+function lineDiff(oldT, newT) {
+  const A = oldT.split('\n'), B = newT.split('\n'), sa = new Set(A), sb = new Set(B), out = [];
+  for (const l of A) if (!sb.has(l) && l.trim()) out.push(['del', l]);
+  for (const l of B) if (!sa.has(l) && l.trim()) out.push(['add', l]);
+  return out;
+}
+function renderVersions() {
+  const t = curTab(); const list = $('vers-list'), view = $('vers-view'); list.replaceChildren(); view.replaceChildren(); if (!t) return;
+  captureTab(); const a = vers[t.id] || [];
+  if (!a.length) { list.appendChild(mkEl('div', 'trow', 'No versions yet. They appear a few seconds after you start typing.')); return; }
+  a.forEach((v, i) => {
+    const r = mkEl('div', 'trow' + (versSel === i ? ' sel' : '')); r.style.cursor = 'pointer';
+    const tx = mkEl('div', 't'); tx.append(mkEl('div', '', (v.pin ? '📌 ' : '') + (v.label && v.label !== 'auto' ? v.label : 'Autosave')), mkEl('div', 'm', `${fmtTime(v.ts)} · ${v.text.length.toLocaleString()} chars`));
+    r.appendChild(tx); r.onclick = () => { versSel = i; renderVersions(); }; list.appendChild(r);
+  });
+  const v = a[versSel == null ? -1 : versSel]; if (!v) { view.textContent = 'Select a version to see it and what differs from the current text.'; return; }
+  const d = lineDiff(v.text, ed.value);
+  const bar = mkEl('div', 'row'); bar.style.marginBottom = '.5rem';
+  bar.append(mkBtn('Restore this version', 'btn-indigo', () => { snapshotVersion(t, 'before restore'); ed.value = v.text; setTplName(v.name || t.name); onEditorInput(); closeModal('m-vers'); toast('Version restored. The previous text is saved as a version.', 'success'); }),
+    mkBtn('Label / pin…', 'btn-slate', async () => { const l = await askText('Label for this version', v.label && v.label !== 'auto' ? v.label : ''); if (l != null) { v.label = l; v.pin = true; kv.set('vers', vers); renderVersions(); } }),
+    mkBtn('Delete', 'btn-slate', () => { a.splice(versSel, 1); versSel = null; kv.set('vers', vers); renderVersions(); }));
+  view.appendChild(bar);
+  view.appendChild(mkEl('div', 'm', d.length ? `Compared with the current text (${d.filter(x => x[0] === 'del').length} lines only here, ${d.filter(x => x[0] === 'add').length} lines only in the current text):` : 'Identical to the current text.'));
+  for (const [k, l] of d.slice(0, 80)) view.appendChild(mkEl('span', k, (k === 'add' ? '+ ' : '− ') + l));
+  view.appendChild(mkEl('div', 'm', '\nFull text of this version:')); view.appendChild(mkEl('div', '', v.text));
+}
+$('btn-versions').onclick = () => { versSel = null; captureTab(); renderVersions(); openModal('m-vers'); };
+$('vers-now').onclick = async () => { const l = await askText('Name for this version', 'milestone'); if (!l) return; captureTab(); const t = curTab(); const a = vers[t.id] || []; if (a[0] && a[0].text === t.text) { a[0].label = l; a[0].pin = true; kv.set('vers', vers); } else snapshotVersion(t, l); renderVersions(); };
+
+/* ---------- projects ---------- */
+const PROJ_OPTS = ['onePara', 'tidy', 'inline', 'vars', 'weights', 'comments', 'parentColor', 'crlf', 'batchCount', 'batchUnique', 'batchRepro', 'batchSeedPrefix', 'permMulti', 'permDedupe', 'permCap'];
+const PROJ_EXT = ['stripW', 'fmt', 'split', 'negFile', 'frontend'];
+let projs = {};
+function projSnapshot() {
+  captureTab(); const o = {}, x = {}; PROJ_OPTS.forEach(k => o[k] = opts[k]); PROJ_EXT.forEach(k => x[k] = ext[k]);
+  return { app: 'wps-project', ts: Date.now(), active: Math.max(0, T.tabs.findIndex(t => t.id === T.active)), tabs: T.tabs.map(t => ({ name: t.name, text: t.text, seed: t.seed, x: t.x })), opts: o, ext: x };
+}
+function applyProject(pr) {
+  for (const t of T.tabs) snapshotVersion(t, 'before project');
+  for (const k of PROJ_OPTS) if (pr.opts && k in pr.opts) opts[k] = pr.opts[k];
+  for (const k of PROJ_EXT) if (pr.ext && k in pr.ext) ext[k] = pr.ext[k];
+  saveOpts(); lsSet('wps.ext', ext); syncOptInputs(); reparseAll();
+  T.tabs = (pr.tabs || []).map(t => Object.assign(newTabObj(t.name, t.text), { seed: t.seed, x: t.x || { prefix: '', suffix: '', negative: '', profile: ext.profile } }));
+  if (!T.tabs.length) T.tabs.push(newTabObj()); T.active = null; showTab(T.tabs[Math.min(pr.active || 0, T.tabs.length - 1)].id); closeModal('m-proj');
+  toast('Project opened.', 'success');
+}
+function renderProjects() {
+  const box = $('proj-body'); box.replaceChildren(); const names = Object.keys(projs).sort((a, b) => projs[b].ts - projs[a].ts);
+  if (!names.length) { box.appendChild(mkEl('div', 'trow', 'No saved projects yet.')); return; }
+  for (const n of names) {
+    const p = projs[n], r = mkEl('div', 'trow'); const t = mkEl('div', 't'); t.append(mkEl('div', '', n), mkEl('div', 'm', `${fmtTime(p.ts)} · ${p.tabs.length} template${p.tabs.length === 1 ? '' : 's'}`));
+    r.append(t, mkBtn('Open', 'btn-indigo', () => { if (confirm('Open this project? Your current tabs are replaced (a version of each is kept).')) applyProject(p); }),
+      mkBtn('Update', 'btn-slate', () => { if (!confirm(`Overwrite “${n}” with what is open now?`)) return; projs[n] = projSnapshot(); kv.set('projs', projs); renderProjects(); }, 'Save the current tabs and settings over this project'),
+      mkBtn('Export…', 'btn-slate', () => saveSmall('templates', `project_${safeName(n, '')}.json`, JSON.stringify(p, null, 2))),
+      mkBtn('✕', 'btn-slate', () => { if (confirm(`Delete project “${n}”?`)) { delete projs[n]; kv.set('projs', projs); renderProjects(); } }, 'Delete'));
+    box.appendChild(r);
+  }
+}
+$('btn-projects').onclick = () => { renderProjects(); openModal('m-proj'); };
+$('proj-save').onclick = async () => {
+  const n = await askText('Project name', S.tpl.name === 'untitled-prompt' ? 'my project' : S.tpl.name); if (!n) return;
+  if (projs[n] && !confirm(`A project called “${n}” exists. Replace it?`)) return; projs[n] = projSnapshot(); kv.set('projs', projs); renderProjects(); toast('Project saved.', 'success');
+};
+$('proj-import').onclick = () => $('proj-file').click();
+$('proj-file').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const j = JSON.parse(await f.text()); if (j.app !== 'wps-project' || !Array.isArray(j.tabs)) throw new Error('not a project file');
+    let n = f.name.replace(/\.json$/i, '').replace(/^project_/, ''), k = n, i = 2; while (projs[k]) k = `${n} (${i++})`; projs[k] = j; kv.set('projs', projs); renderProjects(); toast(`Imported as “${k}”.`, 'success');
+  } catch (err) { toast('Could not import: ' + err.message, 'error'); }
+});
+
+async function extInit(draft) {
+  hist = await kv.get('hist', []); favs = await kv.get('favs', []); vers = await kv.get('vers', {}); projs = await kv.get('projs', {});
+  const saved = await kv.get('tabs', null);
+  if (saved && Array.isArray(saved.tabs) && saved.tabs.length) {
+    T.tabs = saved.tabs.map(t => Object.assign(newTabObj(t.name, t.text), { id: t.id, dirty: !!t.dirty, seed: t.seed, x: t.x || { prefix: '', suffix: '', negative: '', profile: ext.profile } }));
+    T.active = null; const a = T.tabs.find(t => t.id === saved.active) || T.tabs[0]; renderProfSelect(); showTab(a.id);
+  } else {
+    const t = newTabObj(S.tpl.name, ed.value); t.dirty = S.tpl.dirty; T.tabs = [t]; T.active = t.id; t.x = { prefix: ext.prefix, suffix: ext.suffix, negative: ext.negative, profile: ext.profile };
+    renderProfSelect(); renderTabs();
+  }
+  syncExtInputs(); updateSweepList();
+}
+
 /* ---------- start-up ---------- */
 (async function init() {
   bindOptions();
@@ -1817,7 +2608,7 @@ applyLayout();
   if (draft && draft.text) { ed.value = draft.text; setTplName(draft.name || 'untitled-prompt'); S.tpl.dirty = true; $('dirty').classList.remove('hidden'); } else setTplName('untitled-prompt');
   if (!HAS_FSA) { const c = $('compat'); c.textContent = 'This browser can’t remember folders or save straight into them. Wildcard folders still load and saves go to Downloads. Use Microsoft Edge or Google Chrome for the full feature set.'; c.classList.remove('hidden'); }
   for (const k of KINDS) { const h = await idbGet(k.id); if (h) S.handles[k.id] = h; }
-  refreshStatus(); renderList(); highlight();
+  refreshStatus(); renderList(); highlight(); await extInit(draft);
   const w = S.handles.wildcards;
   if (w) {
     try {
