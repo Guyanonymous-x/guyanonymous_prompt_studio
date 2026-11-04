@@ -5,7 +5,7 @@
 <!-- Blocks every network request: the page cannot upload or download anything. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:; base-uri 'none'; form-action 'none'" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Offline Wildcard Prompt Studio</title>
+<title>Offline Wildcard Prompt Studio v2</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -73,7 +73,6 @@
   @media (max-width: 1180px) {
     body { overflow: auto; }
     .app { grid-template-columns: 17rem minmax(0,1fr); grid-template-areas: "side center" "side right"; grid-template-rows: minmax(34rem,auto) auto; min-height: 0; }
-    .center { min-height: 36rem; }
     .right { border-left: none; border-top: 1px solid var(--line); overflow: visible; }
   }
 
@@ -177,7 +176,7 @@
   <div class="brand">
     <div class="brand-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
     <div>
-      <h1>Offline Wildcard Prompt Studio <span class="badge badge-active">Offline</span></h1>
+      <h1>Offline Wildcard Prompt Studio <span class="badge badge-indigo">v2</span> <span class="badge badge-active">Offline</span></h1>
       <p>Nothing is uploaded. The page can only read and write folders you choose.</p>
     </div>
   </div>
@@ -288,7 +287,6 @@
       <label class="chk"><input type="checkbox" data-opt="inline" /> <span>Inline choices <code class="mono">{a|b|c}</code><small>Picks one option at random. Can be nested.</small></span></label>
       <label class="chk"><input type="checkbox" data-opt="comments" /> <span>Ignore lines starting with #<small>In wildcard files.</small></span></label>
       <label class="chk"><input type="checkbox" data-opt="subfolders" /> <span>Include subfolders when scanning</span></label>
-      <label class="chk"><input type="checkbox" data-opt="hideOutputs" /> <span>Hide generated output files<small>Skips batch_*, sample_* and all-prompts_* in the wildcard list.</small></span></label>
       <label class="chk"><input type="checkbox" data-opt="liveUpdate" /> <span>Update sample as I type</span></label>
       <label class="chk"><input type="checkbox" data-opt="colorize" /> <span>Colour-code wildcard results</span></label>
       <label class="chk"><input type="checkbox" data-opt="crlf" /> <span>Windows line endings (CRLF) in saved files</span></label>
@@ -373,14 +371,13 @@
 const MAX_DEPTH = 30;
 const opts = {
   onePara: true, tidy: false, inline: false, comments: true, subfolders: true,
-  liveUpdate: true, colorize: true, crlf: false, hideOutputs: true,
+  liveUpdate: true, colorize: true, crlf: false,
   batchCount: 50, batchUnique: true, batchRepro: false, batchSeedPrefix: false,
   permMulti: false, permDedupe: true, permCap: 100000
 };
 const S = {
   index: new Map(),          // key -> entry
   aliases: new Map(),        // basename -> key
-  loose: new Map(),          // looseKey(basename) -> key
   source: 'none',            // folder | fallback | demo | none
   handles: { wildcards: null, templates: null, samples: null, batch: null, permutations: null },
   tpl: { name: 'untitled-prompt', handle: null, dirty: false },
@@ -389,8 +386,7 @@ const S = {
 };
 let onEntryLoaded = null;
 
-const TAG_SRC = String.raw`__([\p{L}\p{N}_\-./\\](?:[\p{L}\p{N}_\-./\\ ]*?[\p{L}\p{N}_\-./\\])??)__`;
-const TAG_RE = new RegExp(TAG_SRC, 'uy');
+const TAG_RE = /__([A-Za-z0-9_\-./\\]+?)__/y;
 function normName(s) { return s.trim().replace(/\\/g, '/').replace(/\.txt$/i, '').replace(/^\.?\//, '').toLowerCase(); }
 
 function parse(src, inline) {
@@ -467,19 +463,10 @@ function setRaw(e, text) {
   e.asts = new Array(e.lines.length);
   e.count = null;
 }
-function decodeBytes(b) {
-  let enc = 'utf-8', off = 0;
-  if (b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF) off = 3;
-  else if (b[0] === 0xFF && b[1] === 0xFE) { enc = 'utf-16le'; off = 2; }
-  else if (b[0] === 0xFE && b[1] === 0xFF) { enc = 'utf-16be'; off = 2; }
-  else if (b.length > 3 && b[0] !== 0 && b[1] === 0 && b[2] !== 0 && b[3] === 0) enc = 'utf-16le';
-  return new TextDecoder(enc).decode(b.subarray(off)).replace(/\u0000/g, '');
-}
-async function fileText(f) { return decodeBytes(new Uint8Array(await f.arrayBuffer())); }
 async function readEntryText(e) {
   if (e.virtualText != null) return e.virtualText;
-  if (e.src && typeof e.src.getFile === 'function') return fileText(await e.src.getFile());
-  if (e.src && typeof e.src.arrayBuffer === 'function') return fileText(e.src);
+  if (e.src && typeof e.src.getFile === 'function') return (await e.src.getFile()).text();
+  if (e.src && typeof e.src.text === 'function') return e.src.text();
   return '';
 }
 function loadEntry(e) {
@@ -487,7 +474,7 @@ function loadEntry(e) {
   if (!e.loading) {
     e.loading = (async () => {
       try { setRaw(e, await readEntryText(e)); e.error = null; }
-      catch (err) { e.error = err.message || String(err); setRaw(e, ''); if (typeof toast === 'function') toast(`Could not read ${e.path}: ${e.error}`, 'error'); }
+      catch (err) { e.error = err.message || String(err); setRaw(e, ''); }
       e.loading = null;
       if (onEntryLoaded) onEntryLoaded(e);
       return e;
@@ -503,21 +490,16 @@ function reparseAll() {
 function clearCounts() { for (const e of S.index.values()) e.count = null; }
 
 function rebuildAliases() {
-  S.aliases.clear(); S.loose.clear();
+  S.aliases.clear();
   for (const k of [...S.index.keys()].sort()) {
     const base = k.split('/').pop();
     if (!S.aliases.has(base)) S.aliases.set(base, k);
-    const lk = looseKey(base); if (!S.loose.has(lk)) S.loose.set(lk, k);
   }
 }
-function looseKey(s) { return s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ''); }
 function resolve(name) {
   if (S.index.has(name)) return S.index.get(name);
-  const base = name.split('/').pop();
-  const k = S.aliases.get(base);
-  if (k) return S.index.get(k);
-  const lk = S.loose.get(looseKey(base));       // ignores case, spaces, _ and - differences
-  return lk ? S.index.get(lk) : null;
+  const k = S.aliases.get(name.split('/').pop());
+  return !name.includes('/') && k ? S.index.get(k) : null;
 }
 function newIssues() { return { missing: new Set(), empty: new Set(), cyclic: new Set() }; }
 
@@ -639,7 +621,6 @@ const KINDS = [
   { id: 'permutations', label: 'All-prompts exports', hint: 'Used by “Export all prompts”.' }
 ];
 const HAS_FSA = typeof window.showDirectoryPicker === 'function';
-const LIST_CAP = 1000;
 const rowCounts = new Map();
 let evalTok = 0, countTok = 0, job = { batch: null, perm: null };
 
@@ -769,10 +750,9 @@ async function renderFolderModal() {
 }
 
 /* ---------- scanning ---------- */
-const isOutputName = n => opts.hideOutputs && /^(batch|all-prompts|sample)_/i.test(n);
 async function walkDir(dir, prefix, recurse, out) {
   for await (const [name, h] of dir.entries()) {
-    if (h.kind === 'file') { if (/\.txt$/i.test(name) && !isOutputName(name)) out.push({ path: prefix + name, src: h }); }
+    if (h.kind === 'file') { if (/\.txt$/i.test(name)) out.push({ path: prefix + name, src: h }); }
     else if (recurse && !name.startsWith('.') && name.toLowerCase() !== 'node_modules') await walkDir(h, prefix + name + '/', recurse, out);
   }
 }
@@ -798,7 +778,7 @@ async function scanFolder(handle, request = false) {
 function scanFallback(files) {
   const out = [];
   for (const f of files) {
-    if (!/\.txt$/i.test(f.name) || isOutputName(f.name)) continue;
+    if (!/\.txt$/i.test(f.name)) continue;
     const parts = (f.webkitRelativePath || f.name).split('/'); parts.shift();
     if (!opts.subfolders && parts.length > 1) continue;
     out.push({ path: parts.join('/') || f.name, src: f });
@@ -827,7 +807,7 @@ function renderList() {
   const keys = [...S.index.keys()].filter(k => !q || k.includes(q)).sort();
   $('file-count').textContent = `${S.index.size} file${S.index.size === 1 ? '' : 's'}`;
   $('empty-state').classList.toggle('hidden', S.index.size > 0);
-  for (const k of keys.slice(0, LIST_CAP)) {
+  for (const k of keys) {
     const e = S.index.get(k);
     const row = document.createElement('div'); row.className = 'wc-row' + (k === S.selected ? ' sel' : ''); row.draggable = true; row.dataset.key = k;
     const info = document.createElement('div'); info.style.minWidth = 0;
@@ -845,7 +825,6 @@ function renderList() {
     row.addEventListener('dblclick', () => insertTag(k));
     list.appendChild(row);
   }
-  if (keys.length > LIST_CAP) { const n = document.createElement('div'); n.className = 'sub'; n.style.padding = '.4rem'; n.textContent = `Showing ${LIST_CAP} of ${keys.length}. Use the filter to narrow the list.`; list.appendChild(n); }
 }
 onEntryLoaded = e => { const c = rowCounts.get(e.key); if (c) c.textContent = e.lines.length.toLocaleString(); };
 function insertTag(key) { insertAtCursor(`__${key}__`); }
@@ -866,7 +845,7 @@ function updateInspectorMeta() {
   const text = $('insp-text').value;
   $('insp-count').textContent = `${text.split(/\r?\n/).filter(l => l.trim() && !(opts.comments && l.trim().startsWith('#'))).length.toLocaleString()} options`;
   const box = $('insp-refs'); box.replaceChildren();
-  const names = [...new Set([...text.matchAll(new RegExp(TAG_SRC, 'gu'))].map(m => normName(m[1])))].slice(0, 30);
+  const names = [...new Set([...text.matchAll(/__([A-Za-z0-9_\-./\\]+?)__/g)].map(m => normName(m[1])))].slice(0, 30);
   for (const nm of names) {
     const t = resolve(nm); const c = document.createElement('span'); c.className = 'chip' + (t ? '' : ' bad'); c.textContent = `__${nm}__`;
     if (t) c.onclick = () => selectEntry(t.key); else c.title = 'Not found'; box.appendChild(c);
@@ -903,7 +882,7 @@ async function newWildcard() {
 /* ---------- editor ---------- */
 function highlight() {
   const t = ed.value; let html = '', last = 0;
-  const re = new RegExp(TAG_SRC, 'gu'); let m;
+  const re = /__([A-Za-z0-9_\-./\\]+?)__/g; let m;
   while ((m = re.exec(t))) {
     html += esc(t.slice(last, m.index)); last = m.index + m[0].length;
     html += `<mark class="${resolve(normName(m[1])) ? 'ok' : 'bad'}">${esc(m[0])}</mark>`;
@@ -921,7 +900,7 @@ const refreshSampleSoon = debounce(() => refreshSample(), 90);
 
 function updateSuggest() {
   const box = $('suggest'); const before = ed.value.slice(0, ed.selectionStart);
-  const m = /__([\p{L}\p{N}_\-./\\]*)$/u.exec(before);
+  const m = /__([A-Za-z0-9_\-./\\]*)$/.exec(before);
   if (!m || m[1].includes('__') || ed.selectionStart !== ed.selectionEnd) { box.classList.add('hidden'); return; }
   const q = m[1].toLowerCase().replace(/\\/g, '/');
   const hits = [...S.index.keys()].filter(k => k.includes(q)).sort((a, b) => (a.startsWith(q) ? 0 : 1) - (b.startsWith(q) ? 0 : 1) || a.length - b.length).slice(0, 8);
@@ -1110,13 +1089,7 @@ function setTplName(n) { S.tpl.name = n; $('tpl-name').value = n; }
 function confirmDiscard() { return !S.tpl.dirty || !ed.value.trim() || confirm('This template has unsaved changes. Discard them?'); }
 function loadTemplateText(text, name, handle) {
   ed.value = text.replace(/\r\n?/g, '\n'); setTplName(name.replace(/\.txt$/i, '')); S.tpl.handle = handle || null;
-  S.tpl.dirty = false; $('dirty').classList.add('hidden'); S.overrides.clear(); highlight(); scheduleCount(); saveDraft();
-  refreshSample().then(() => {
-    if (!text.includes('__')) return;
-    if (!S.index.size) { toast('No wildcard files are loaded yet. Choose or Reconnect the wildcard folder, then the prompt will fill in.', 'error'); return; }
-    const miss = [...(S.issuesSample ? S.issuesSample.missing : [])];
-    if (miss.length) toast(`Not found in your wildcard files: ${miss.map(m => '__' + m + '__').join(', ')}`, 'error');
-  });
+  S.tpl.dirty = false; $('dirty').classList.add('hidden'); S.overrides.clear(); highlight(); refreshSample(); scheduleCount(); saveDraft();
 }
 async function saveTemplate(forceAs) {
   if (!ed.value.trim()) return toast('The template is empty.', 'error');
@@ -1147,7 +1120,7 @@ async function openTemplateDialog() {
         names.sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
         $('open-where').textContent = names.length ? `Templates in ${dir.name}:` : `No .txt files in ${dir.name} yet.`;
         const box = $('open-list'); box.replaceChildren();
-        for (const [n, h] of names) { const b = document.createElement('button'); b.textContent = n; b.onclick = async () => { $('m-open').classList.add('hidden'); loadTemplateText(await fileText(await h.getFile()), n, h); toast('Opened ' + n, 'success'); }; box.appendChild(b); }
+        for (const [n, h] of names) { const b = document.createElement('button'); b.textContent = n; b.onclick = async () => { $('m-open').classList.add('hidden'); loadTemplateText(await (await h.getFile()).text(), n, h); toast('Opened ' + n, 'success'); }; box.appendChild(b); }
         $('m-open').classList.remove('hidden'); return;
       }
     } catch (e) { toast('Could not read the templates folder: ' + e.message, 'error'); }
@@ -1159,11 +1132,11 @@ async function browseTemplate() {
   if (typeof window.showOpenFilePicker === 'function') {
     try {
       const o = { id: 'templates', types: [{ description: 'Text file', accept: { 'text/plain': ['.txt'] } }] }; if (S.handles.templates) o.startIn = S.handles.templates;
-      const [fh] = await window.showOpenFilePicker(o); loadTemplateText(await fileText(await fh.getFile()), fh.name, fh); toast('Opened ' + fh.name, 'success');
+      const [fh] = await window.showOpenFilePicker(o); loadTemplateText(await (await fh.getFile()).text(), fh.name, fh); toast('Opened ' + fh.name, 'success');
     } catch (e) { if (e.name !== 'AbortError') toast(e.message, 'error'); }
   } else $('file-tpl').click();
 }
-$('file-tpl').addEventListener('change', async e => { const f = e.target.files[0]; if (f) loadTemplateText(await fileText(f), f.name, null); e.target.value = ''; });
+$('file-tpl').addEventListener('change', async e => { const f = e.target.files[0]; if (f) loadTemplateText(await f.text(), f.name, null); e.target.value = ''; });
 $('btn-new').onclick = () => { if (!confirmDiscard()) return; loadTemplateText('', 'untitled-prompt', null); ed.focus(); };
 $('btn-clear').onclick = () => { ed.value = ''; onEditorInput(); ed.focus(); };
 $('btn-open').onclick = openTemplateDialog;
@@ -1182,7 +1155,7 @@ function bindOptions() {
     el.addEventListener('change', async () => {
       opts[k] = el.type === 'checkbox' ? el.checked : (parseInt(el.value, 10) || opts[k]); saveOpts();
       if (k === 'comments' || k === 'inline') { reparseAll(); highlight(); S.overrides.clear(); }
-      if ((k === 'subfolders' || k === 'hideOutputs') && S.handles.wildcards && S.source === 'folder') await scanFolder(S.handles.wildcards);
+      if (k === 'subfolders' && S.handles.wildcards && S.source === 'folder') await scanFolder(S.handles.wildcards);
       if (k === 'permMulti') updatePermButton();
       refreshSample(); scheduleCount();
     });
