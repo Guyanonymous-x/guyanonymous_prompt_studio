@@ -5,7 +5,7 @@
 <!-- Blocks every network request: the page cannot upload or download anything. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:; base-uri 'none'; form-action 'none'" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Offline Wildcard Prompt Studio v2</title>
+<title>Offline Wildcard Prompt Studio v2.1</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -129,6 +129,18 @@
   #sample-view.plain .seg { background: none !important; }
   .d0 { background: rgba(99,102,241,.26); } .d1 { background: rgba(16,185,129,.24); } .d2 { background: rgba(245,158,11,.26); } .d3 { background: rgba(236,72,153,.26); }
   .seg.miss { background: rgba(244,63,94,.35); cursor: default; }
+  /* v2.1: expandable wildcards. --h = hue, --d = depth */
+  .seg[style*="--h"] { background: hsl(var(--h) 65% 55% / .26); }
+  .tg { display: inline-block; min-width: 1.1em; text-align: center; margin-right: .15em; border-radius: 3px; background: rgba(255,255,255,.14); color: #fff; font: 700 .7rem/1.35 var(--sans); cursor: pointer; user-select: none; vertical-align: baseline; }
+  .tg:hover { background: rgba(255,255,255,.35); }
+  .part { display: inline-block; vertical-align: top; max-width: 100%; margin: 2px 3px; padding: 0 0 .2rem; border: 1px solid hsl(var(--h) 70% 62% / .6); border-radius: 6px; background: hsl(var(--h) 60% 50% / calc(.10 + var(--d) * .05)); cursor: pointer; }
+  .part > .lbl { display: block; padding: .1rem .45rem; border-radius: 5px 5px 0 0; background: hsl(var(--h) 60% 50% / .30); font: 600 .6875rem/1.5 var(--mono); color: #e2e8f0; cursor: default; user-select: none; white-space: nowrap; }
+  .part > .lbl .nfo { font-weight: 400; color: var(--muted); margin-left: .4rem; }
+  .part > .pbody { display: block; padding: .25rem .5rem 0; }
+  #sample-view.plain .part { border-color: transparent; background: none; }
+  #sample-view.plain .part > .lbl { background: none; }
+  .sample-tools2 { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; font-size: .6875rem; color: var(--muted); }
+  .sample-tools2 input[type=number] { width: 4rem; padding: .2rem .35rem; font-family: var(--mono); text-align: center; }
   .final { flex: 0 1 auto; max-height: 32%; min-height: 2.5rem; overflow-y: auto; font-size: 0.6875rem; color: var(--dim); }
   .final .txt { font: 0.75rem/1.5 var(--mono); color: #cbd5e1; margin-top: 0.25rem; user-select: text; word-break: break-word; }
 
@@ -176,7 +188,7 @@
   <div class="brand">
     <div class="brand-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
     <div>
-      <h1>Offline Wildcard Prompt Studio <span class="badge badge-indigo">v2</span> <span class="badge badge-active">Offline</span></h1>
+      <h1>Offline Wildcard Prompt Studio <span class="badge badge-indigo">v2.1</span> <span class="badge badge-active">Offline</span></h1>
       <p>Nothing is uploaded. The page can only read and write folders you choose.</p>
     </div>
   </div>
@@ -269,6 +281,12 @@
           <button id="btn-save-sample" class="btn btn-indigo btn-sm">Save sample .txt</button>
         </div>
       </div>
+      <div class="sample-tools2">
+        <button id="btn-expand-all" class="btn btn-slate btn-sm" title="Open every wildcard that calls other wildcards">Expand all</button>
+        <button id="btn-collapse-all" class="btn btn-slate btn-sm">Collapse all</button>
+        <label class="field" for="lvl">Levels <input type="number" id="lvl" min="0" max="20" value="0" title="Open this many levels of nested wildcards" /></label>
+        <span>Use the small arrow on a coloured part to open or close it.</span>
+      </div>
       <div id="sample-view"></div>
       <div class="final">
         <div class="row between"><span>Exactly what gets saved <span id="final-stats"></span></span>
@@ -289,6 +307,7 @@
       <label class="chk"><input type="checkbox" data-opt="subfolders" /> <span>Include subfolders when scanning</span></label>
       <label class="chk"><input type="checkbox" data-opt="liveUpdate" /> <span>Update sample as I type</span></label>
       <label class="chk"><input type="checkbox" data-opt="colorize" /> <span>Colour-code wildcard results</span></label>
+      <label class="chk"><input type="checkbox" data-opt="parentColor" /> <span>Colour by parent<small>Parts called by the same wildcard share its colour. Off = colour by depth.</small></span></label>
       <label class="chk"><input type="checkbox" data-opt="crlf" /> <span>Windows line endings (CRLF) in saved files</span></label>
     </div>
 
@@ -371,7 +390,7 @@
 const MAX_DEPTH = 30;
 const opts = {
   onePara: true, tidy: false, inline: false, comments: true, subfolders: true,
-  liveUpdate: true, colorize: true, crlf: false,
+  liveUpdate: true, colorize: true, parentColor: true, crlf: false,
   batchCount: 50, batchUnique: true, batchRepro: false, batchSeedPrefix: false,
   permMulti: false, permDedupe: true, permCap: 100000
 };
@@ -930,16 +949,52 @@ ed.addEventListener('drop', () => setTimeout(onEditorInput, 0));
 new ResizeObserver(highlight).observe(ed);
 
 /* ---------- sample ---------- */
-function renderTreeInto(parent, nodes, depth) {
+const HUES = [245, 160, 38, 330, 200, 90];
+const posKey = k => k.replace(/\[\d+\]/g, '');                 // position in the prompt, ignoring which option was picked
+const hasKids = n => n.kids && n.kids.some(c => c.k !== 'text');
+function isOpen(n, depth) { const pk = posKey(n.key); return S.exp.has(pk) ? S.exp.get(pk) : depth < S.levels; }
+function mkEl(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function mkArrow(n, open) {
+  const a = mkEl('span', 'tg', open ? '▾' : '▸'); a.dataset.pos = posKey(n.key); a.dataset.open = open ? '1' : '0';
+  a.title = open ? 'Collapse' : 'Show what this wildcard calls'; return a;
+}
+function nodeTitle(n) {
+  return n.k === 'wc' ? `__${n.name}__ — option ${n.idx + 1} of ${n.entry.lines.length.toLocaleString()} — click to re-roll`
+                      : `{choice} — option ${n.idx + 1} of ${n.n} — click to re-roll`;
+}
+// mode: 'top' = template level, 'parts' = inside an expanded wildcard (boxes), 'flat' = plain nested colouring
+function renderTreeInto(parent, nodes, depth, root = null, mode = 'top') {
+  let ri = 0;
   for (const n of nodes) {
-    if (n.k === 'text') parent.appendChild(document.createTextNode(n.v));
-    else if (n.k === 'miss') { const s = document.createElement('span'); s.className = 'seg miss'; s.textContent = n.v; parent.appendChild(s); }
-    else {
-      const s = document.createElement('span'); s.className = 'seg d' + (depth % 4); s.dataset.key = n.key;
-      s.title = n.k === 'wc' ? `__${n.name}__ — option ${n.idx + 1} of ${n.entry.lines.length.toLocaleString()} — click to re-roll` : `{choice} — option ${n.idx + 1} of ${n.n} — click to re-roll`;
-      renderTreeInto(s, n.kids, depth + 1); parent.appendChild(s);
+    if (n.k === 'text') { parent.appendChild(document.createTextNode(n.v)); continue; }
+    if (n.k === 'miss') { parent.appendChild(mkEl('span', 'seg miss', n.v)); continue; }
+    const rt = root === null ? ri++ : root;
+    const hue = opts.parentColor ? HUES[rt % HUES.length] : HUES[depth % 4];
+    const expandable = mode !== 'flat' && hasKids(n);
+    const open = expandable && isOpen(n, depth);
+    if (mode === 'flat' || (mode === 'top' && !open)) {
+      const sp = mkEl('span', 'seg d' + (depth % 4)); sp.dataset.key = n.key; sp.title = nodeTitle(n); sp.style.setProperty('--h', hue);
+      if (expandable) sp.appendChild(mkArrow(n, false));
+      renderTreeInto(sp, n.kids, depth + 1, rt, 'flat'); parent.appendChild(sp);
+    } else {
+      const box = mkEl('span', 'seg part'); box.dataset.key = n.key; box.title = nodeTitle(n);
+      box.style.setProperty('--h', hue); box.style.setProperty('--d', depth);
+      const lbl = mkEl('span', 'lbl');
+      if (expandable) lbl.appendChild(mkArrow(n, open));
+      lbl.appendChild(document.createTextNode(n.k === 'wc' ? `__${n.name}__` : '{choice}'));
+      lbl.appendChild(mkEl('span', 'nfo', n.k === 'wc' ? `${n.idx + 1}/${n.entry.lines.length.toLocaleString()}` : `${n.idx + 1}/${n.n}`));
+      const body = mkEl('span', 'pbody');
+      renderTreeInto(body, n.kids, depth + 1, rt, open ? 'parts' : 'flat');
+      box.append(lbl, body); parent.appendChild(box);
     }
   }
+}
+function drawSample() {
+  const view = $('sample-view'); if (!S.tree) return;
+  const top = view.scrollTop;
+  view.replaceChildren(); renderTreeInto(view, S.tree, 0);
+  view.scrollTop = top;
+  view.classList.remove('stale'); view.classList.toggle('para', opts.onePara); view.classList.toggle('plain', !opts.colorize);
 }
 async function refreshSample() {
   const tok = ++evalTok, text = ed.value, view = $('sample-view');
@@ -948,8 +1003,7 @@ async function refreshSample() {
   let tree; try { tree = await evaluate(text, S.seed, S.overrides, issues); } catch (e) { toast('Evaluation error: ' + e.message, 'error'); return; }
   if (tok !== evalTok) return;
   S.tree = tree; S.issuesSample = issues; S.final = finalize(flat(tree));
-  view.replaceChildren(); renderTreeInto(view, tree, 0);
-  view.classList.remove('stale'); view.classList.toggle('para', opts.onePara); view.classList.toggle('plain', !opts.colorize);
+  drawSample();
   updateFinal(); renderTrace(tree); renderIssues();
 }
 function updateFinal() {
@@ -983,9 +1037,17 @@ function renderIssues() {
   if (!box.children.length) add('badge-active', ed.value.trim() ? 'No problems found' : 'Nothing to check yet');
 }
 $('sample-view').addEventListener('click', ev => {
+  const tg = ev.target.closest('.tg');
+  if (tg) { S.exp.set(tg.dataset.pos, tg.dataset.open !== '1'); drawSample(); return; }
+  if (ev.target.closest('.lbl')) return;
   const s = ev.target.closest('.seg[data-key]'); if (!s) return;
   S.overrides.set(s.dataset.key, randomSeed()); refreshSample();
 });
+S.exp = new Map(); S.levels = 0;                 // per-position open/closed overrides, and the "levels" default
+function setLevels(n) { S.levels = n; S.exp.clear(); drawSample(); }
+$('btn-expand-all').onclick = () => { $('lvl').value = ''; setLevels(99); };
+$('btn-collapse-all').onclick = () => { $('lvl').value = 0; setLevels(0); };
+$('lvl').addEventListener('change', () => { let v = parseInt($('lvl').value, 10); if (!Number.isFinite(v) || v < 0) v = 0; $('lvl').value = v; setLevels(Math.min(v, 99)); });
 function rollAll() { S.seed = randomSeed(); S.overrides.clear(); $('seed').value = S.seed; refreshSample(); }
 $('btn-roll').onclick = rollAll;
 $('seed').addEventListener('change', () => { let v = parseInt($('seed').value, 10); if (!Number.isFinite(v) || v < 0) v = randomSeed(); S.seed = v >>> 0; $('seed').value = S.seed; S.overrides.clear(); refreshSample(); });
@@ -1089,7 +1151,7 @@ function setTplName(n) { S.tpl.name = n; $('tpl-name').value = n; }
 function confirmDiscard() { return !S.tpl.dirty || !ed.value.trim() || confirm('This template has unsaved changes. Discard them?'); }
 function loadTemplateText(text, name, handle) {
   ed.value = text.replace(/\r\n?/g, '\n'); setTplName(name.replace(/\.txt$/i, '')); S.tpl.handle = handle || null;
-  S.tpl.dirty = false; $('dirty').classList.add('hidden'); S.overrides.clear(); highlight(); refreshSample(); scheduleCount(); saveDraft();
+  S.tpl.dirty = false; $('dirty').classList.add('hidden'); S.overrides.clear(); S.exp.clear(); highlight(); refreshSample(); scheduleCount(); saveDraft();
 }
 async function saveTemplate(forceAs) {
   if (!ed.value.trim()) return toast('The template is empty.', 'error');
