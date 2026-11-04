@@ -5,7 +5,7 @@
 <!-- Blocks every network request: the page cannot upload or download anything. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:; base-uri 'none'; form-action 'none'" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Offline Wildcard Prompt Studio v2.5</title>
+<title>Guyanonymous' Prompt Studio v3</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -152,6 +152,14 @@
   body.dragging, body.dragging * { user-select: none !important; }
   #wc-list.wrap .truncate { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
   #wc-list.wrap .wc-row { align-items: flex-start; }
+  /* v3: collapsible right-hand cards */
+  .card .chead { cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+  .card .chead::before { content: '▾'; color: var(--indigo-t); font-size: .8rem; order: -1; width: 1rem; flex: none; }
+  .card.collapsed { gap: 0; padding-top: .55rem; padding-bottom: .55rem; }
+  .card.collapsed .chead::before { content: '▸'; }
+  .card.collapsed > :not(.chead) { display: none; }
+  .card .chead h3 { flex: 1; }
+  .right-tools { display: flex; justify-content: flex-end; gap: .4rem; flex: none; }
   /* v2.5: tabs, gauge, tables, modals */
   .card div.note { font-size: 0.6875rem; color: var(--muted); line-height: 1.45; }
   .tbl .m, #vers-view .m { color: var(--dim); font-size: .6875rem; }
@@ -267,7 +275,7 @@
   <div class="brand">
     <div class="brand-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
     <div>
-      <h1>Offline Wildcard Prompt Studio <span class="badge badge-indigo">v2.5</span> <span class="badge badge-active">Offline</span></h1>
+      <h1>Guyanonymous' Prompt Studio <span class="badge badge-indigo">v3</span> <span class="badge badge-active">Offline</span></h1>
       <p>Nothing is uploaded. The page can only read and write folders you choose.</p>
     </div>
   </div>
@@ -393,6 +401,7 @@
 
   <!-- Tools -->
   <section class="right">
+    <div class="right-tools"><button id="btn-cards-collapse" class="btn btn-slate btn-sm">Collapse all</button><button id="btn-cards-expand" class="btn btn-slate btn-sm">Expand all</button></div>
     <div class="card">
       <h3>Output options</h3>
       <label class="chk"><input type="checkbox" data-opt="onePara" /> <span>Single paragraph<small>Removes all line breaks from saved prompts.</small></span></label>
@@ -2203,7 +2212,7 @@ function serializeRecords(part, fmt, startN) {
   if (fmt === 'csv') return '﻿' + ['n,seed,prompt,negative,picks'].concat(part.map((r, i) => [startN + i, r.seed, r.prompt, r.negative, r.picks.map(p => p.name + '=' + p.value).join('; ')].map(csvCell).join(','))).join(eol()) + eol();
   if (fmt === 'json') {
     const p = curProfile();
-    return JSON.stringify({ app: 'Wildcard Prompt Studio v2.5', template: S.tpl.name, model: p ? p.name : null, created: new Date().toISOString(), count: part.length,
+    return JSON.stringify({ app: "Guyanonymous' Prompt Studio v3", template: S.tpl.name, model: p ? p.name : null, created: new Date().toISOString(), count: part.length,
       items: part.map((r, i) => ({ n: startN + i, seed: r.seed, prompt: r.prompt, negative: r.negative || undefined, picks: Object.fromEntries(r.picks.map(x => [x.name, x.value])) })) }, null, 2) + eol();
   }
   return part.map(r => (opts.batchSeedPrefix ? `${r.seed} | ` : '') + r.prompt).join(eol()) + eol();
@@ -2599,6 +2608,21 @@ async function extInit(draft) {
   }
   syncExtInputs(); updateSweepList();
 }
+
+/* ---------- collapsible right-hand cards (v3) ---------- */
+const cardState = lsGet('wps.cards', {});
+const cardsEls = [...document.querySelectorAll('.right .card')];
+cardsEls.forEach(card => {
+  const h = card.querySelector('h3'); if (!h) return;
+  let head = h; while (head.parentElement !== card) head = head.parentElement;
+  head.classList.add('chead'); const key = h.textContent.trim();
+  const set = (c, save) => { card.classList.toggle('collapsed', c); head.setAttribute('aria-expanded', String(!c)); if (save) { cardState[key] = c; lsSet('wps.cards', cardState); } };
+  head.setAttribute('role', 'button'); head.tabIndex = 0; card._set = set; set(!!cardState[key], false);
+  head.addEventListener('click', e => { if (e.target.closest('button, input, select, a')) return; set(!card.classList.contains('collapsed'), true); });
+  head.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === head) { e.preventDefault(); set(!card.classList.contains('collapsed'), true); } });
+});
+$('btn-cards-collapse').onclick = () => cardsEls.forEach(c => c._set && c._set(true, true));
+$('btn-cards-expand').onclick = () => cardsEls.forEach(c => c._set && c._set(false, true));
 
 /* ---------- start-up ---------- */
 (async function init() {
