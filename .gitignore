@@ -1,0 +1,8 @@
+# local scratch
+*.bak
+*.tmp
+.DS_Store
+Thumbs.db
+node_modules/
+# large release archives live outside git
+*.zip
