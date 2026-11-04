@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<!-- Blocks every network request: the page cannot upload or download anything. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:; base-uri 'none'; form-action 'none'" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Offline Wildcard Prompt Studio</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #090d16; --panel: #0f172a; --panel2: #0b1329; --line: #1e293b; --line2: #334155;
+    --text: #f1f5f9; --muted: #94a3b8; --dim: #64748b; --indigo: #6366f1; --indigo-t: #a5b4fc;
+    --emerald: #10b981; --emerald-t: #34d399; --amber: #f59e0b; --amber-t: #fcd34d; --rose: #f43f5e;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Cascadia Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; font-family: var(--sans); background: var(--bg); color: var(--text); }
+  body { display: flex; flex-direction: column; overflow: hidden; }
+  * { scrollbar-width: thin; scrollbar-color: var(--line2) var(--panel); }
+  .hidden { display: none !important; }
+  .mono { font-family: var(--mono); }
+  .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  :focus-visible { outline: 2px solid var(--indigo); outline-offset: 1px; }
+
+  /* Header + status */
+  header { height: 3.5rem; background: var(--panel); border-bottom: 1px solid var(--line); padding: 0 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-shrink: 0; }
+  .brand { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+  .brand-icon { padding: 0.5rem; background: rgba(79,70,229,.2); color: #818cf8; border-radius: 0.5rem; border: 1px solid rgba(99,102,241,.3); display: flex; }
+  .brand h1 { font-size: 0.875rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
+  .brand p { font-size: 0.6875rem; color: var(--muted); }
+  .head-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: nowrap; }
+  .sep { height: 1rem; width: 1px; background: var(--line2); }
+  .status-bar { background: var(--panel2); border-bottom: 1px solid var(--line); padding: 0.375rem 1rem; font-size: 0.6875rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-shrink: 0; flex-wrap: wrap; }
+  .status-group { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .status-item { display: flex; align-items: center; gap: 0.5rem; color: var(--muted); }
+  .link-btn { background: none; border: none; color: #818cf8; cursor: pointer; text-decoration: underline; font-size: 0.6875rem; }
+  .banner { background: rgba(217,119,6,.12); border-bottom: 1px solid rgba(245,158,11,.35); color: var(--amber-t); font-size: 0.75rem; padding: 0.4rem 1rem; flex-shrink: 0; }
+
+  /* Buttons, badges, inputs */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; padding: 0.375rem 0.75rem; font: 500 0.75rem var(--sans); border-radius: 0.375rem; border: 1px solid transparent; cursor: pointer; transition: background .15s, border-color .15s; user-select: none; white-space: nowrap; color: inherit; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-slate { background: var(--line); color: #cbd5e1; border-color: var(--line2); }
+  .btn-slate:hover:not(:disabled) { background: var(--line2); color: #f8fafc; }
+  .btn-indigo { background: #4f46e5; color: #fff; border-color: var(--indigo); box-shadow: 0 4px 12px rgba(79,70,229,.25); }
+  .btn-indigo:hover:not(:disabled) { background: #4338ca; }
+  .btn-emerald { background: #059669; color: #fff; border-color: var(--emerald); box-shadow: 0 4px 12px rgba(16,185,129,.25); }
+  .btn-emerald:hover:not(:disabled) { background: #047857; }
+  .btn-amber { background: #d97706; color: #fff; border-color: var(--amber); box-shadow: 0 4px 12px rgba(217,119,6,.25); }
+  .btn-amber:hover:not(:disabled) { background: #b45309; }
+  .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.6875rem; }
+  .btn-icon { padding: 0.25rem; background: transparent; color: var(--muted); border: none; border-radius: 0.25rem; cursor: pointer; display: inline-flex; }
+  .btn-icon:hover { color: #f8fafc; background: var(--line); }
+  .badge { display: inline-flex; align-items: center; padding: 0.125rem 0.5rem; font-size: 0.625rem; font-weight: 500; border-radius: 9999px; border: 1px solid transparent; white-space: nowrap; }
+  .badge-active { background: rgba(16,185,129,.15); border-color: rgba(16,185,129,.4); color: var(--emerald-t); }
+  .badge-inactive { background: rgba(100,116,139,.15); border-color: rgba(100,116,139,.4); color: var(--muted); }
+  .badge-indigo { background: rgba(99,102,241,.15); border-color: rgba(99,102,241,.4); color: var(--indigo-t); }
+  .badge-warn { background: rgba(245,158,11,.15); border-color: rgba(245,158,11,.4); color: var(--amber-t); }
+  .badge-bad { background: rgba(244,63,94,.15); border-color: rgba(244,63,94,.4); color: #fda4af; }
+  input[type=text], input[type=number], select, textarea { background: var(--panel); border: 1px solid var(--line); color: #f8fafc; border-radius: 0.375rem; padding: 0.4rem 0.5rem; font: 0.75rem var(--sans); outline: none; transition: border-color .15s; }
+  input[type=text]:focus, input[type=number]:focus, select:focus, textarea:focus { border-color: var(--indigo); }
+  input[type=checkbox] { accent-color: #6366f1; }
+  label.chk { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.75rem; color: #cbd5e1; cursor: pointer; line-height: 1.3; }
+  label.chk input { margin-top: 0.1rem; }
+  label.chk small { display: block; color: var(--dim); font-size: 0.6875rem; margin-top: 0.1rem; }
+
+  /* Main grid */
+  .app { flex: 1; min-height: 0; display: grid; grid-template-columns: 19rem minmax(0,1fr) 23rem; grid-template-areas: "side center right"; }
+  .side { grid-area: side; display: flex; flex-direction: column; min-height: 0; background: rgba(15,23,42,.5); border-right: 1px solid var(--line); }
+  .center { grid-area: center; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .right { grid-area: right; overflow-y: auto; border-left: 1px solid var(--line); padding: 0.75rem; display: flex; flex-direction: column; gap: 0.75rem; min-height: 0; }
+  @media (max-width: 1180px) {
+    body { overflow: auto; }
+    .app { grid-template-columns: 17rem minmax(0,1fr); grid-template-areas: "side center" "side right"; grid-template-rows: minmax(34rem,auto) auto; min-height: 0; }
+    .center { min-height: 36rem; }
+    .right { border-left: none; border-top: 1px solid var(--line); overflow: visible; }
+  }
+
+  /* Sidebar */
+  .side-head { padding: 0.75rem; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 0.5rem; }
+  .panel-title { font-size: 0.75rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: #cbd5e1; display: flex; align-items: center; gap: 0.5rem; }
+  .row { display: flex; align-items: center; gap: 0.5rem; }
+  .between { justify-content: space-between; }
+  .grow { flex: 1 1 0; min-width: 0; }
+  .wc-list { flex: 1; overflow-y: auto; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem; min-height: 6rem; }
+  .wc-row { padding: 0.4rem 0.5rem 0.4rem 0.65rem; background: var(--panel); border: 1px solid var(--line); border-radius: 0.375rem; cursor: grab; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+  .wc-row:hover { border-color: var(--indigo); background: #131d35; }
+  .wc-row.sel { border-color: var(--indigo); background: rgba(79,70,229,.18); }
+  .wc-row .tag { font: 600 0.75rem var(--mono); color: #e2e8f0; }
+  .wc-row .sub { font-size: 0.625rem; color: var(--dim); }
+  .wc-row .cnt { font-size: 0.625rem; color: var(--dim); font-family: var(--mono); }
+  .empty-state { margin: 0.5rem; border: 2px dashed var(--line); border-radius: 0.5rem; padding: 1rem; text-align: center; color: var(--muted); font-size: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; align-items: center; }
+  .empty-state p.small { font-size: 0.6875rem; color: var(--dim); }
+  .inspector { border-top: 1px solid var(--line); background: var(--bg); padding: 0.75rem; display: flex; flex-direction: column; gap: 0.4rem; height: 17rem; flex-shrink: 0; }
+  .inspector textarea { flex: 1; resize: none; font: 0.75rem/1.5 var(--mono); white-space: pre; overflow: auto; }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.25rem; max-height: 3.2rem; overflow: auto; }
+  .chip { font: 0.625rem var(--mono); padding: 0.1rem 0.4rem; border-radius: 0.25rem; border: 1px solid var(--line2); background: var(--panel); color: var(--indigo-t); cursor: pointer; }
+  .chip.bad { color: #fda4af; border-color: rgba(244,63,94,.5); cursor: default; }
+
+  /* Editor */
+  .bar { height: 2.5rem; flex-shrink: 0; border-bottom: 1px solid var(--line); background: rgba(15,23,42,.3); padding: 0 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+  .bar input[type=text] { width: 13rem; padding: 0.25rem 0.5rem; font-family: var(--mono); }
+  .editor-wrap { position: relative; flex: 1 1 0; min-height: 8rem; margin: 0.75rem 1rem 0.5rem; border: 1px solid var(--line); border-radius: 0.375rem; background: var(--panel); transition: border-color .15s, box-shadow .15s; }
+  .editor-wrap:focus-within { border-color: var(--indigo); }
+  .editor-wrap.drop { border-color: var(--emerald); box-shadow: 0 0 0 2px rgba(16,185,129,.3); }
+  .backdrop, #ed { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0.75rem; font: 0.875rem/1.6 var(--mono); letter-spacing: 0; white-space: pre-wrap; overflow-wrap: break-word; word-break: normal; border: 0; border-radius: 0.375rem; tab-size: 4; overflow-y: scroll; overflow-x: hidden; }
+  .backdrop { color: transparent; pointer-events: none; scrollbar-color: transparent transparent; }
+  #ed { background: transparent; color: #f8fafc; resize: none; }
+  .backdrop mark { color: transparent; border-radius: 3px; }
+  mark.ok { background: rgba(16,185,129,.28); }
+  mark.bad { background: rgba(244,63,94,.35); }
+  mark.inl { background: rgba(245,158,11,.22); }
+  .suggest { position: absolute; left: 0.75rem; bottom: 0.75rem; z-index: 5; min-width: 14rem; max-width: 90%; background: #111a30; border: 1px solid var(--indigo); border-radius: 0.375rem; box-shadow: 0 10px 25px rgba(0,0,0,.5); overflow: hidden; }
+  .suggest div { padding: 0.3rem 0.6rem; font: 0.75rem var(--mono); cursor: pointer; color: #e2e8f0; }
+  .suggest div.on, .suggest div:hover { background: #4f46e5; color: #fff; }
+  .hint { font-size: 0.6875rem; color: var(--dim); padding: 0.5rem 1rem 0; }
+  .hint code { color: #818cf8; }
+
+  /* Sample panel */
+  .sample { flex: 1 1 0; min-height: 8rem; overflow: hidden; border-top: 1px solid var(--line); background: rgba(15,23,42,.45); padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  .sample-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
+  .sample-head .tools { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+  .sample-head input[type=number] { width: 8rem; font-family: var(--mono); padding: 0.25rem 0.4rem; }
+  #sample-view { flex: 1 1 0; min-height: 3rem; overflow-y: auto; font: 0.875rem/1.7 var(--mono); color: #f8fafc; word-break: break-word; white-space: pre-wrap; background: var(--bg); border: 1px solid var(--line); border-radius: 0.375rem; padding: 0.75rem; }
+  #sample-view.para { white-space: normal; }
+  #sample-view.stale { opacity: .55; }
+  .seg { border-radius: 3px; cursor: pointer; transition: filter .1s; }
+  .seg:hover { filter: brightness(1.5); outline: 1px solid rgba(255,255,255,.35); }
+  #sample-view.plain .seg { background: none !important; }
+  .d0 { background: rgba(99,102,241,.26); } .d1 { background: rgba(16,185,129,.24); } .d2 { background: rgba(245,158,11,.26); } .d3 { background: rgba(236,72,153,.26); }
+  .seg.miss { background: rgba(244,63,94,.35); cursor: default; }
+  .final { flex: 0 1 auto; max-height: 32%; min-height: 2.5rem; overflow-y: auto; font-size: 0.6875rem; color: var(--dim); }
+  .final .txt { font: 0.75rem/1.5 var(--mono); color: #cbd5e1; margin-top: 0.25rem; user-select: text; word-break: break-word; }
+
+  /* Right cards */
+  .card { background: rgba(15,23,42,.8); border: 1px solid var(--line); border-radius: 0.5rem; padding: 0.85rem; display: flex; flex-direction: column; gap: 0.6rem; }
+  .card h3 { font-size: 0.6875rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: #cbd5e1; }
+  .card p.note { font-size: 0.6875rem; color: var(--muted); line-height: 1.45; }
+  .field { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--muted); }
+  .field input[type=number] { width: 6.5rem; text-align: center; font-family: var(--mono); }
+  .progress { width: 100%; height: 0.5rem; background: var(--bg); border: 1px solid var(--line); border-radius: 9999px; overflow: hidden; }
+  .progress > div { height: 100%; width: 0; background: var(--indigo); transition: width .1s; }
+  .small-mono { font: 0.625rem var(--mono); color: var(--muted); }
+  details > summary { cursor: pointer; font-size: 0.6875rem; color: var(--muted); }
+  .lines-prev { font: 0.6875rem/1.45 var(--mono); color: #cbd5e1; max-height: 9rem; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 0.375rem; padding: 0.5rem; margin-top: 0.4rem; white-space: pre-wrap; word-break: break-word; }
+  .trace { font: 0.6875rem var(--mono); background: var(--bg); border: 1px solid var(--line); border-radius: 0.375rem; padding: 0.5rem; max-height: 14rem; overflow: auto; display: flex; flex-direction: column; gap: 0.3rem; color: #cbd5e1; }
+  .trace-row { display: flex; align-items: baseline; gap: 0.4rem; border-left: 2px solid var(--indigo); padding-left: 0.4rem; min-width: 0; }
+  .trace-row .v { color: var(--emerald-t); overflow-wrap: anywhere; }
+  .issues { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+  /* Modals */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(2,6,23,.8); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+  .modal { background: var(--panel); border: 1px solid var(--line); border-radius: 0.75rem; padding: 1.25rem; width: 100%; max-width: 40rem; max-height: 90vh; overflow: auto; display: flex; flex-direction: column; gap: 0.9rem; }
+  .modal h3 { font-size: 0.875rem; font-weight: 700; }
+  .modal .head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 0.6rem; }
+  .modal p { font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+  .folder-row { padding: 0.65rem 0.75rem; background: var(--bg); border: 1px solid var(--line); border-radius: 0.5rem; display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+  .folder-row .t { font-size: 0.75rem; font-weight: 600; color: #e2e8f0; }
+  .folder-row .s { font-size: 0.6875rem; color: var(--dim); }
+  .file-pick { max-height: 18rem; overflow: auto; display: flex; flex-direction: column; gap: 0.25rem; }
+  .file-pick button { text-align: left; background: var(--bg); border: 1px solid var(--line); color: #e2e8f0; border-radius: 0.375rem; padding: 0.4rem 0.6rem; font: 0.75rem var(--mono); cursor: pointer; }
+  .file-pick button:hover { border-color: var(--indigo); }
+  .help dl { display: grid; grid-template-columns: 11rem 1fr; gap: 0.35rem 0.75rem; font-size: 0.75rem; }
+  .help dt { font-family: var(--mono); color: var(--indigo-t); }
+  .help dd { color: #cbd5e1; }
+  #toasts { position: fixed; bottom: 1rem; right: 1rem; z-index: 100; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; }
+  .toast { padding: 0.5rem 0.75rem; font-size: 0.75rem; background: var(--panel); color: #f8fafc; border-left: 3px solid var(--indigo); border-radius: 0.375rem; box-shadow: 0 10px 25px rgba(0,0,0,.5); max-width: 26rem; overflow-wrap: anywhere; animation: tin .2s ease; }
+  .toast.error { border-color: var(--rose); } .toast.success { border-color: var(--emerald); }
+  @keyframes tin { from { opacity: 0; transform: translateY(8px); } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
+    <div>
+      <h1>Offline Wildcard Prompt Studio <span class="badge badge-active">Offline</span></h1>
+      <p>Nothing is uploaded. The page can only read and write folders you choose.</p>
+    </div>
+  </div>
+  <div class="head-actions">
+    <button id="btn-folders" class="btn btn-slate" style="color:#a5b4fc">Folders</button>
+    <div class="sep"></div>
+    <button id="btn-new" class="btn btn-slate">New</button>
+    <button id="btn-open" class="btn btn-slate">Open</button>
+    <button id="btn-save" class="btn btn-indigo">Save template</button>
+    <button id="btn-saveas" class="btn btn-slate">Save as…</button>
+    <button id="btn-help" class="btn btn-slate" title="Syntax and shortcuts">?</button>
+    <input type="file" id="file-tpl" accept=".txt,text/plain" class="hidden" />
+  </div>
+</header>
+
+<div class="status-bar">
+  <div class="status-group">
+    <div class="status-item">Wildcard folder: <span id="st-wc" class="badge badge-inactive">Not linked</span>
+      <button id="btn-reconnect" class="link-btn hidden">Reconnect</button></div>
+    <div class="status-item">Output folders: <span id="st-out" class="badge badge-inactive">Using Downloads</span></div>
+  </div>
+  <div class="mono" style="color:var(--dim)" id="st-info">Ctrl+S save · Ctrl+Enter new roll · Ctrl+O open</div>
+</div>
+<div id="compat" class="banner hidden"></div>
+
+<div class="app">
+  <!-- Wildcard list -->
+  <aside class="side">
+    <div class="side-head">
+      <div class="row between">
+        <span class="panel-title">Wildcard files</span>
+        <span id="file-count" class="badge badge-indigo">0 files</span>
+      </div>
+      <div class="row">
+        <button id="btn-scan" class="btn btn-indigo grow">Choose folder…</button>
+        <button id="btn-rescan" class="btn btn-slate" title="Re-scan the linked folder" disabled>Rescan</button>
+      </div>
+      <input type="text" id="filter" placeholder="Filter files…" />
+      <div class="row between">
+        <button id="btn-newwc" class="btn btn-slate btn-sm">+ New wildcard file</button>
+        <span style="font-size:.625rem;color:var(--dim)">drag into prompt · double-click inserts</span>
+      </div>
+      <input type="file" id="fallback-dir" webkitdirectory multiple class="hidden" />
+    </div>
+    <div id="empty-state" class="empty-state">
+      <p style="font-weight:600">No wildcard folder linked</p>
+      <p class="small">Choose the folder that holds your .txt files. Every .txt inside it (and its subfolders) becomes a wildcard.</p>
+      <button id="btn-demo" class="btn btn-slate btn-sm">Load demo files instead</button>
+    </div>
+    <div id="wc-list" class="wc-list"></div>
+    <div id="inspector" class="inspector hidden">
+      <div class="row between">
+        <span id="insp-title" class="mono truncate" style="font-size:.75rem;font-weight:700"></span>
+        <div class="row" style="gap:.15rem">
+          <button id="insp-insert" class="btn btn-slate btn-sm">Insert tag</button>
+          <button id="insp-save" class="btn btn-emerald btn-sm">Save file</button>
+          <button id="insp-close" class="btn-icon" title="Close">✕</button>
+        </div>
+      </div>
+      <textarea id="insp-text" spellcheck="false" wrap="off"></textarea>
+      <div id="insp-refs" class="chips"></div>
+      <div class="row between" style="font-size:.625rem;color:var(--dim)"><span>One option per line. Blank lines ignored.</span><span id="insp-count"></span></div>
+    </div>
+  </aside>
+
+  <!-- Editor + sample -->
+  <main class="center">
+    <div class="bar">
+      <div class="row">
+        <span class="panel-title">Prompt template</span>
+        <input type="text" id="tpl-name" spellcheck="false" title="File name used when saving" />
+        <span id="dirty" class="badge badge-warn hidden">unsaved</span>
+      </div>
+      <button id="btn-clear" class="btn btn-slate btn-sm">Clear</button>
+    </div>
+    <p class="hint">Type normally and use <code>__filename__</code> for wildcards. Type <code>__</code> for suggestions. Green = file found, red = not found.</p>
+    <div class="editor-wrap" id="editor-wrap">
+      <pre id="bd" class="backdrop" aria-hidden="true"></pre>
+      <textarea id="ed" spellcheck="false" placeholder="A cinematic photo of a __gender__ in __settings10000__, __env_weather__…"></textarea>
+      <div id="suggest" class="suggest hidden"></div>
+    </div>
+
+    <section class="sample" id="sample-panel">
+      <div class="sample-head">
+        <span class="panel-title">Sample (wildcards filled in)</span>
+        <div class="tools">
+          <label class="field" for="seed">Seed <input type="number" id="seed" min="0" max="4294967295" /></label>
+          <button id="btn-roll" class="btn btn-emerald btn-sm" title="Ctrl+Enter">Roll new sample</button>
+          <button id="btn-copy" class="btn btn-slate btn-sm">Copy</button>
+          <button id="btn-save-sample" class="btn btn-indigo btn-sm">Save sample .txt</button>
+        </div>
+      </div>
+      <div id="sample-view"></div>
+      <div class="final">
+        <div class="row between"><span>Exactly what gets saved <span id="final-stats"></span></span>
+          <span>Click a highlighted part above to re-roll just that part</span></div>
+        <div id="final-text" class="txt"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Tools -->
+  <section class="right">
+    <div class="card">
+      <h3>Output options</h3>
+      <label class="chk"><input type="checkbox" data-opt="onePara" /> <span>Single paragraph<small>Removes all line breaks from saved prompts.</small></span></label>
+      <label class="chk"><input type="checkbox" data-opt="tidy" /> <span>Tidy spacing and commas<small>Cleans “, ,” and stray spaces left by empty options.</small></span></label>
+      <label class="chk"><input type="checkbox" data-opt="inline" /> <span>Inline choices <code class="mono">{a|b|c}</code><small>Picks one option at random. Can be nested.</small></span></label>
+      <label class="chk"><input type="checkbox" data-opt="comments" /> <span>Ignore lines starting with #<small>In wildcard files.</small></span></label>
+      <label class="chk"><input type="checkbox" data-opt="subfolders" /> <span>Include subfolders when scanning</span></label>
+      <label class="chk"><input type="checkbox" data-opt="hideOutputs" /> <span>Hide generated output files<small>Skips batch_*, sample_* and all-prompts_* in the wildcard list.</small></span></label>
+      <label class="chk"><input type="checkbox" data-opt="liveUpdate" /> <span>Update sample as I type</span></label>
+      <label class="chk"><input type="checkbox" data-opt="colorize" /> <span>Colour-code wildcard results</span></label>
+      <label class="chk"><input type="checkbox" data-opt="crlf" /> <span>Windows line endings (CRLF) in saved files</span></label>
+    </div>
+
+    <div class="card">
+      <h3>Batch of random prompts (up to 1,000)</h3>
+      <div class="field"><label for="batch-count">How many</label><input type="number" id="batch-count" data-opt="batchCount" min="1" max="1000" /></div>
+      <label class="chk"><input type="checkbox" data-opt="batchUnique" /> <span>Skip duplicates</span></label>
+      <label class="chk"><input type="checkbox" data-opt="batchRepro" /> <span>Reproducible<small>Derive each prompt’s seed from the Seed box. Otherwise every prompt gets a fresh random seed.</small></span></label>
+      <label class="chk"><input type="checkbox" data-opt="batchSeedPrefix" /> <span>Write each seed before its prompt<small>Format: <span class="mono">seed | prompt</span></small></span></label>
+      <div class="row"><button id="btn-batch" class="btn btn-indigo grow">Generate and save batch</button><button id="btn-batch-cancel" class="btn btn-slate hidden">Cancel</button></div>
+      <div id="batch-prog" class="hidden"><div class="progress"><div id="batch-bar"></div></div><div id="batch-txt" class="small-mono" style="text-align:right;margin-top:.2rem"></div></div>
+      <details id="batch-preview-wrap" class="hidden"><summary>Preview of last batch</summary><div id="batch-preview" class="lines-prev"></div></details>
+    </div>
+
+    <div class="card">
+      <div class="row between"><h3>All possible prompts</h3><span id="perm-badge" class="badge badge-inactive">–</span></div>
+      <p class="note">Available when the template contains exactly one wildcard reference. Writes every prompt that wildcard (and everything nested inside it) can produce.</p>
+      <label class="chk"><input type="checkbox" data-opt="permMulti" /> <span>Allow several wildcards<small>Writes every combination (can be enormous).</small></span></label>
+      <label class="chk"><input type="checkbox" data-opt="permDedupe" /> <span>Remove duplicate lines</span></label>
+      <div class="field"><label for="perm-cap">Maximum lines</label><input type="number" id="perm-cap" data-opt="permCap" min="1" max="50000000" /></div>
+      <div id="perm-count" class="mono" style="font-size:.75rem;color:var(--amber-t)">Combinations: –</div>
+      <div class="row"><button id="btn-perm" class="btn btn-amber grow">Export all prompts</button><button id="btn-perm-cancel" class="btn btn-slate hidden">Cancel</button></div>
+      <div id="perm-prog" class="hidden"><div class="progress"><div id="perm-bar"></div></div><div id="perm-txt" class="small-mono" style="text-align:right;margin-top:.2rem"></div></div>
+    </div>
+
+    <div class="card">
+      <div class="row between"><h3>Checks</h3></div>
+      <div id="issues" class="issues"></div>
+      <details><summary>Resolution trace <span id="trace-sum" style="color:var(--dim)"></span></summary><div id="trace" class="trace" style="margin-top:.4rem"></div></details>
+    </div>
+  </section>
+</div>
+
+<!-- Folders modal -->
+<div id="m-folders" class="modal-backdrop hidden"><div class="modal">
+  <div class="head"><h3>Folders</h3><button class="btn-icon" data-close="m-folders">✕</button></div>
+  <p>Each kind of file has its own folder, remembered between sessions. Windows may ask you to re-allow access when you reopen the app. Browsers refuse a few top-level system folders (Documents, Downloads, Desktop itself); pick a subfolder inside them.</p>
+  <div id="folder-rows" class="col" style="display:flex;flex-direction:column;gap:.5rem"></div>
+  <div class="row between"><button id="btn-allout" class="btn btn-slate">Use one folder for all outputs…</button><button class="btn btn-indigo" data-close="m-folders">Done</button></div>
+</div></div>
+
+<!-- Open template modal -->
+<div id="m-open" class="modal-backdrop hidden"><div class="modal">
+  <div class="head"><h3>Open template</h3><button class="btn-icon" data-close="m-open">✕</button></div>
+  <p id="open-where"></p>
+  <div id="open-list" class="file-pick"></div>
+  <div class="row between"><button id="btn-browse" class="btn btn-slate">Browse elsewhere…</button><button class="btn btn-slate" data-close="m-open">Cancel</button></div>
+</div></div>
+
+<!-- Ask text modal -->
+<div id="m-ask" class="modal-backdrop hidden"><div class="modal" style="max-width:26rem">
+  <div class="head"><h3 id="ask-title"></h3></div>
+  <input type="text" id="ask-input" spellcheck="false" />
+  <div class="row" style="justify-content:flex-end"><button id="ask-cancel" class="btn btn-slate">Cancel</button><button id="ask-ok" class="btn btn-indigo">OK</button></div>
+</div></div>
+
+<!-- Help modal -->
+<div id="m-help" class="modal-backdrop hidden"><div class="modal help">
+  <div class="head"><h3>Syntax and shortcuts</h3><button class="btn-icon" data-close="m-help">✕</button></div>
+  <dl>
+    <dt>__name__</dt><dd>Replaced by a random line from name.txt. Lines can contain more __wildcards__; these are resolved until none remain.</dd>
+    <dt>__folder/name__</dt><dd>A file inside a subfolder. A bare __name__ also works if that name is unique.</dd>
+    <dt>{a|b|c}</dt><dd>Inline random choice (turn on in Output options).</dd>
+    <dt># comment</dt><dd>Lines beginning with # in a wildcard file are skipped (optional).</dd>
+    <dt>Seed</dt><dd>Same seed + same template = same sample. Editing text keeps the other choices stable. Click a coloured part to re-roll only that part.</dd>
+    <dt>Ctrl+S / Ctrl+Shift+S</dt><dd>Save template / Save as</dd>
+    <dt>Ctrl+Enter</dt><dd>Roll a new sample</dd>
+    <dt>Ctrl+O</dt><dd>Open template</dd>
+  </dl>
+  <p>A saved template is itself a .txt file. If you put it in your wildcard folder it becomes a wildcard, with each line treated as one option.</p>
+</div></div>
+
+<div id="toasts"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   CORE ENGINE (no DOM): parsing, random choice, counting, enumeration
+   ===================================================================== */
+const MAX_DEPTH = 30;
+const opts = {
+  onePara: true, tidy: false, inline: false, comments: true, subfolders: true,
+  liveUpdate: true, colorize: true, crlf: false, hideOutputs: true,
+  batchCount: 50, batchUnique: true, batchRepro: false, batchSeedPrefix: false,
+  permMulti: false, permDedupe: true, permCap: 100000
+};
+const S = {
+  index: new Map(),          // key -> entry
+  aliases: new Map(),        // basename -> key
+  loose: new Map(),          // looseKey(basename) -> key
+  source: 'none',            // folder | fallback | demo | none
+  handles: { wildcards: null, templates: null, samples: null, batch: null, permutations: null },
+  tpl: { name: 'untitled-prompt', handle: null, dirty: false },
+  seed: 0, overrides: new Map(), tree: null, final: '',
+  selected: null, issuesSample: null, issuesCount: null, total: null
+};
+let onEntryLoaded = null;
+
+const TAG_SRC = String.raw`__([\p{L}\p{N}_\-./\\](?:[\p{L}\p{N}_\-./\\ ]*?[\p{L}\p{N}_\-./\\])??)__`;
+const TAG_RE = new RegExp(TAG_SRC, 'uy');
+function normName(s) { return s.trim().replace(/\\/g, '/').replace(/\.txt$/i, '').replace(/^\.?\//, '').toLowerCase(); }
+
+function parse(src, inline) {
+  let i = 0;
+  function findClose(start) {
+    let d = 0;
+    for (let j = start; j < src.length; j++) {
+      const c = src[j];
+      if (c === '{') d++;
+      else if (c === '}') { d--; if (d === 0) return j; }
+    }
+    return -1;
+  }
+  function seq(inChoice) {
+    const out = []; let buf = '';
+    const flush = () => { if (buf) { out.push({ t: 'text', v: buf }); buf = ''; } };
+    while (i < src.length) {
+      const c = src[i];
+      if (c === '_' && src[i + 1] === '_') {
+        TAG_RE.lastIndex = i;
+        const m = TAG_RE.exec(src);
+        if (m) { flush(); out.push({ t: 'wc', name: normName(m[1]), raw: m[0] }); i += m[0].length; continue; }
+      }
+      if (inline && c === '{' && findClose(i) > 0) {
+        flush(); i++;
+        const options = [];
+        for (;;) { options.push(seq(true)); if (src[i] === '|') { i++; continue; } break; }
+        if (src[i] === '}') i++;
+        out.push({ t: 'choice', opts: options });
+        continue;
+      }
+      if (inChoice && (c === '|' || c === '}')) break;
+      buf += c; i++;
+    }
+    flush();
+    return out;
+  }
+  return seq(false);
+}
+
+/* Seeded randomness. Each wildcard occurrence is keyed by its position, so
+   editing other text does not change the choices already made. */
+function xmur3(str) {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function pickIndex(seed, key, n) { return Math.min(n - 1, Math.floor(mulberry32(xmur3(seed + '|' + key))() * n)); }
+function randomSeed() {
+  try { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0]; } catch { return Math.floor(Math.random() * 4294967296); }
+}
+
+/* Entries */
+function makeEntry(key, path, src, virtualText) {
+  return { key, path, src: src || null, virtualText: virtualText ?? null, raw: null, lines: null, asts: null, loading: null, count: null, error: null };
+}
+function parseLines(raw) {
+  let ls = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (opts.comments) ls = ls.filter(l => !l.startsWith('#'));
+  return ls;
+}
+function setRaw(e, text) {
+  e.raw = text.replace(/^\uFEFF/, '');
+  e.lines = parseLines(e.raw);
+  e.asts = new Array(e.lines.length);
+  e.count = null;
+}
+function decodeBytes(b) {
+  let enc = 'utf-8', off = 0;
+  if (b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF) off = 3;
+  else if (b[0] === 0xFF && b[1] === 0xFE) { enc = 'utf-16le'; off = 2; }
+  else if (b[0] === 0xFE && b[1] === 0xFF) { enc = 'utf-16be'; off = 2; }
+  else if (b.length > 3 && b[0] !== 0 && b[1] === 0 && b[2] !== 0 && b[3] === 0) enc = 'utf-16le';
+  return new TextDecoder(enc).decode(b.subarray(off)).replace(/\u0000/g, '');
+}
+async function fileText(f) { return decodeBytes(new Uint8Array(await f.arrayBuffer())); }
+async function readEntryText(e) {
+  if (e.virtualText != null) return e.virtualText;
+  if (e.src && typeof e.src.getFile === 'function') return fileText(await e.src.getFile());
+  if (e.src && typeof e.src.arrayBuffer === 'function') return fileText(e.src);
+  return '';
+}
+function loadEntry(e) {
+  if (e.lines) return Promise.resolve(e);
+  if (!e.loading) {
+    e.loading = (async () => {
+      try { setRaw(e, await readEntryText(e)); e.error = null; }
+      catch (err) { e.error = err.message || String(err); setRaw(e, ''); if (typeof toast === 'function') toast(`Could not read ${e.path}: ${e.error}`, 'error'); }
+      e.loading = null;
+      if (onEntryLoaded) onEntryLoaded(e);
+      return e;
+    })();
+  }
+  return e.loading;
+}
+function getAst(e, i) { return e.asts[i] || (e.asts[i] = parse(e.lines[i], opts.inline)); }
+function reparseAll() {
+  for (const e of S.index.values()) if (e.raw != null) { e.lines = parseLines(e.raw); e.asts = new Array(e.lines.length); }
+  clearCounts();
+}
+function clearCounts() { for (const e of S.index.values()) e.count = null; }
+
+function rebuildAliases() {
+  S.aliases.clear(); S.loose.clear();
+  for (const k of [...S.index.keys()].sort()) {
+    const base = k.split('/').pop();
+    if (!S.aliases.has(base)) S.aliases.set(base, k);
+    const lk = looseKey(base); if (!S.loose.has(lk)) S.loose.set(lk, k);
+  }
+}
+function looseKey(s) { return s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ''); }
+function resolve(name) {
+  if (S.index.has(name)) return S.index.get(name);
+  const base = name.split('/').pop();
+  const k = S.aliases.get(base);
+  if (k) return S.index.get(k);
+  const lk = S.loose.get(looseKey(base));       // ignores case, spaces, _ and - differences
+  return lk ? S.index.get(lk) : null;
+}
+function newIssues() { return { missing: new Set(), empty: new Set(), cyclic: new Set() }; }
+
+/* Evaluate (async, loads only the files it needs) */
+async function evalNodes(nodes, path, ctx, depth, stack) {
+  const out = []; const counts = {};
+  for (const n of nodes) {
+    if (n.t === 'text') { out.push({ k: 'text', v: n.v }); continue; }
+    if (n.t === 'wc') {
+      const c = counts[n.name] = (counts[n.name] || 0) + 1;
+      const key = `${path}/${n.name}#${c}`;
+      const e = resolve(n.name);
+      if (!e) { ctx.issues.missing.add(n.name); out.push({ k: 'miss', v: `[Missing: __${n.name}__]` }); continue; }
+      if (depth >= MAX_DEPTH || stack.includes(e.key)) { ctx.issues.cyclic.add(e.key); out.push({ k: 'miss', v: `[Circular: __${n.name}__]` }); continue; }
+      await loadEntry(e);
+      if (!e.lines.length) { ctx.issues.empty.add(e.key); out.push({ k: 'miss', v: `[Empty: __${n.name}__]` }); continue; }
+      const seed = ctx.overrides.has(key) ? ctx.overrides.get(key) : ctx.seed;
+      const idx = pickIndex(seed, key, e.lines.length);
+      const kids = await evalNodes(getAst(e, idx), `${key}[${idx}]`, ctx, depth + 1, stack.concat(e.key));
+      out.push({ k: 'wc', name: n.name, entry: e, idx, key, kids });
+    } else {
+      const c = counts['{}'] = (counts['{}'] || 0) + 1;
+      const key = `${path}/{}#${c}`;
+      const seed = ctx.overrides.has(key) ? ctx.overrides.get(key) : ctx.seed;
+      const idx = pickIndex(seed, key, n.opts.length);
+      const kids = await evalNodes(n.opts[idx], `${key}[${idx}]`, ctx, depth + 1, stack);
+      out.push({ k: 'choice', key, idx, n: n.opts.length, kids });
+    }
+  }
+  return out;
+}
+async function evaluate(text, seed, overrides, issues) {
+  return evalNodes(parse(text, opts.inline), '', { seed, overrides, issues }, 0, []);
+}
+function flat(nodes) { return nodes.map(n => (n.k === 'text' || n.k === 'miss') ? n.v : flat(n.kids)).join(''); }
+
+function finalize(t) {
+  if (opts.onePara) t = t.replace(/[\r\n]+/g, ' ').replace(/[ \t]+/g, ' ');
+  else t = t.replace(/\r\n?/g, '\n').split('\n').map(l => l.replace(/[ \t]+/g, ' ').trim()).join('\n');
+  if (opts.tidy) {
+    t = t.replace(/\s+([,;.!?])/g, '$1').replace(/([,;])(\s*[,;])+/g, '$1').replace(/^\s*[,;]\s*/, '').replace(/\s*[,;]\s*$/, '').replace(/([,;])(?=\S)/g, '$1 ');
+  }
+  return t.trim();
+}
+
+/* Counting + enumeration (sync, after preload) */
+function refsIn(nodes, acc = []) {
+  for (const n of nodes) { if (n.t === 'wc') acc.push(n.name); else if (n.t === 'choice') n.opts.forEach(o => refsIn(o, acc)); }
+  return acc;
+}
+async function preload(nodes, isStale) {
+  const seen = new Set(); const queue = refsIn(nodes); let tick = 0;
+  while (queue.length) {
+    const name = queue.pop(); const e = resolve(name);
+    if (!e || seen.has(e.key)) continue;
+    seen.add(e.key);
+    await loadEntry(e);
+    for (let i = 0; i < e.lines.length; i++) refsIn(getAst(e, i), queue);
+    if (++tick % 20 === 0) { await new Promise(r => setTimeout(r)); if (isStale && isStale()) return false; }
+  }
+  return true;
+}
+function countNodes(nodes, ctx) {
+  let total = 1n;
+  for (const n of nodes) {
+    if (n.t === 'text') continue;
+    if (n.t === 'wc') {
+      const e = resolve(n.name);
+      if (!e) { ctx.issues.missing.add(n.name); continue; }
+      total *= countEntry(e, ctx);
+    } else {
+      let s = 0n; for (const o of n.opts) s += countNodes(o, ctx);
+      total *= (s || 1n);
+    }
+  }
+  return total;
+}
+function countEntry(e, ctx) {
+  if (e.count != null) return e.count;
+  if (ctx.stack.has(e.key)) { ctx.issues.cyclic.add(e.key); return 1n; }
+  if (!e.lines || !e.lines.length) { ctx.issues.empty.add(e.key); return 1n; }
+  ctx.stack.add(e.key);
+  let s = 0n;
+  for (let i = 0; i < e.lines.length; i++) s += countNodes(getAst(e, i), ctx);
+  ctx.stack.delete(e.key);
+  if (ctx.issues.cyclic.size === 0) e.count = s;
+  return s;
+}
+function* enumNodes(nodes, i, stack) {
+  if (i >= nodes.length) { yield ''; return; }
+  const n = nodes[i];
+  if (n.t === 'text') { for (const r of enumNodes(nodes, i + 1, stack)) yield n.v + r; return; }
+  for (const a of enumNode(n, stack)) for (const r of enumNodes(nodes, i + 1, stack)) yield a + r;
+}
+function* enumNode(n, stack) {
+  if (n.t === 'wc') {
+    const e = resolve(n.name);
+    if (!e) { yield `[Missing: __${n.name}__]`; return; }
+    if (stack.includes(e.key) || stack.length >= MAX_DEPTH) { yield `[Circular: __${n.name}__]`; return; }
+    if (!e.lines.length) { yield `[Empty: __${n.name}__]`; return; }
+    const st = stack.concat(e.key);
+    for (let i = 0; i < e.lines.length; i++) yield* enumNodes(getAst(e, i), 0, st);
+  } else {
+    for (const o of n.opts) yield* enumNodes(o, 0, stack);
+  }
+}
+
+/* =====================================================================
+   UI
+   ===================================================================== */
+// ==== UI ====
+const $ = id => document.getElementById(id);
+const ed = $('ed'), bd = $('bd');
+const KINDS = [
+  { id: 'wildcards', label: 'Wildcard files (source)', hint: 'Scanned for .txt files. Read-only until you save an edited wildcard.' },
+  { id: 'templates', label: 'Prompt templates', hint: 'Used by Save, Save as and Open.' },
+  { id: 'samples', label: 'Single samples', hint: 'Used by “Save sample .txt”.' },
+  { id: 'batch', label: 'Batch exports', hint: 'Used by the batch generator.' },
+  { id: 'permutations', label: 'All-prompts exports', hint: 'Used by “Export all prompts”.' }
+];
+const HAS_FSA = typeof window.showDirectoryPicker === 'function';
+const LIST_CAP = 1000;
+const rowCounts = new Map();
+let evalTok = 0, countTok = 0, job = { batch: null, perm: null };
+
+/* ---------- small helpers ---------- */
+function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function toast(msg, type = 'info') {
+  const t = document.createElement('div'); t.className = 'toast ' + type; t.textContent = msg;
+  $('toasts').appendChild(t); setTimeout(() => t.remove(), type === 'error' ? 6000 : 3200);
+}
+function lsGet(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage unavailable */ } }
+const IDB_NAME = 'WildcardStudio_v3', IDB_STORE = 'handles';
+function idb() { return new Promise((res, rej) => { const r = indexedDB.open(IDB_NAME, 1); r.onupgradeneeded = () => r.result.createObjectStore(IDB_STORE); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+async function idbSet(k, v) { try { const db = await idb(); await new Promise((res, rej) => { const tx = db.transaction(IDB_STORE, 'readwrite'); v == null ? tx.objectStore(IDB_STORE).delete(k) : tx.objectStore(IDB_STORE).put(v, k); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn('IndexedDB:', e); } }
+async function idbGet(k) { try { const db = await idb(); return await new Promise(res => { const r = db.transaction(IDB_STORE).objectStore(IDB_STORE).get(k); r.onsuccess = () => res(r.result || null); r.onerror = () => res(null); }); } catch { return null; } }
+const tick = () => new Promise(r => setTimeout(r));
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+function stamp() { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; }
+function safeName(n, ext = '.txt') {
+  n = String(n || '').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').replace(/[. ]+$/, '').trim();
+  if (/^(con|prn|aux|nul|com\d|lpt\d)(\..*)?$/i.test(n)) n = '_' + n;
+  if (!n) n = 'untitled';
+  if (!n.toLowerCase().endsWith(ext)) n += ext;
+  return n.length > 120 ? n.slice(0, 116) + ext : n;
+}
+const tplSlug = () => safeName(S.tpl.name.replace(/\.txt$/i, ''), '').replace(/\.txt$/, '').slice(0, 40) || 'prompt';
+const eol = () => opts.crlf ? '\r\n' : '\n';
+function toEol(t) { return t.replace(/\r\n?/g, '\n').replace(/\n/g, eol()); }
+function fmtBig(b) { const s = b.toString(); return s.length <= 15 ? Number(b).toLocaleString('en-US') : `${s[0]}.${s.slice(1, 4)}e+${s.length - 1}`; }
+
+function askText(title, def = '') {
+  return new Promise(resolveP => {
+    $('ask-title').textContent = title; const inp = $('ask-input'); inp.value = def;
+    $('m-ask').classList.remove('hidden'); inp.focus(); inp.select();
+    const done = v => { $('m-ask').classList.add('hidden'); $('ask-ok').onclick = $('ask-cancel').onclick = inp.onkeydown = null; resolveP(v); };
+    $('ask-ok').onclick = () => done(inp.value.trim() || null);
+    $('ask-cancel').onclick = () => done(null);
+    inp.onkeydown = e => { if (e.key === 'Enter') done(inp.value.trim() || null); if (e.key === 'Escape') done(null); };
+  });
+}
+
+/* ---------- output sinks: designated folder, then save dialog, then download ---------- */
+async function ensurePerm(handle, mode) {
+  let p = await handle.queryPermission({ mode });
+  if (p !== 'granted') p = await handle.requestPermission({ mode });
+  return p === 'granted';
+}
+async function openSink(kind, suggested) {
+  suggested = safeName(suggested);
+  const dir = S.handles[kind];
+  if (dir) {
+    try {
+      if (await ensurePerm(dir, 'readwrite')) {
+        const fh = await dir.getFileHandle(suggested, { create: true });
+        const w = await fh.createWritable();
+        return { where: `${dir.name}\\${suggested}`, fh, write: s => w.write(s), close: () => w.close(), abort: () => w.abort().catch(() => {}) };
+      }
+    } catch (e) { toast(`Couldn't write to the ${kind} folder (${e.message}). Choose a location instead.`, 'error'); }
+  }
+  if (typeof window.showSaveFilePicker === 'function') {
+    try {
+      const o = { suggestedName: suggested, id: kind, types: [{ description: 'Text file', accept: { 'text/plain': ['.txt'] } }] };
+      if (dir) o.startIn = dir;
+      const fh = await window.showSaveFilePicker(o);
+      const w = await fh.createWritable();
+      return { where: fh.name, fh, write: s => w.write(s), close: () => w.close(), abort: () => w.abort().catch(() => {}) };
+    } catch (e) { if (e.name === 'AbortError') return null; console.warn(e); }
+  }
+  const parts = [];
+  return { where: 'Downloads\\' + suggested, fh: null, write: s => { parts.push(s); }, abort: () => {},
+    close: async () => { downloadBlob(suggested, new Blob(parts, { type: 'text/plain;charset=utf-8' })); } };
+}
+function downloadBlob(name, blob) {
+  const url = URL.createObjectURL(blob); const a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+async function saveSmall(kind, name, text) {
+  const sink = await openSink(kind, name); if (!sink) return null;
+  try { await sink.write(text); await sink.close(); toast('Saved ' + sink.where, 'success'); return sink; }
+  catch (e) { await sink.abort(); toast('Save failed: ' + e.message, 'error'); return null; }
+}
+
+/* ---------- folders ---------- */
+async function pickDir(kind) {
+  if (!HAS_FSA) { if (kind === 'wildcards') $('fallback-dir').click(); else toast('This browser can’t remember folders. Saves go to Downloads. Use Edge or Chrome for folder support.', 'error'); return null; }
+  try { return await window.showDirectoryPicker({ id: kind, mode: kind === 'wildcards' ? 'read' : 'readwrite' }); }
+  catch (e) { if (e.name !== 'AbortError') toast('Could not use that folder: ' + e.message + ' (try a subfolder)', 'error'); return null; }
+}
+async function setFolder(kind, handle) {
+  S.handles[kind] = handle; await idbSet(kind, handle);
+  if (kind === 'wildcards' && handle) await scanFolder(handle);
+  refreshStatus(); renderFolderModal();
+}
+function refreshStatus() {
+  const w = S.handles.wildcards, b = $('st-wc');
+  if (S.source === 'demo') { b.textContent = 'Demo data'; b.className = 'badge badge-indigo'; }
+  else if (S.source === 'fallback') { b.textContent = 'Loaded (not remembered)'; b.className = 'badge badge-indigo'; }
+  else if (w && S.index.size) { b.textContent = w.name; b.className = 'badge badge-active'; }
+  else if (w) { b.textContent = w.name + ' (needs access)'; b.className = 'badge badge-warn'; }
+  else { b.textContent = 'Not linked'; b.className = 'badge badge-inactive'; }
+  $('btn-rescan').disabled = !w;
+  const n = ['templates', 'samples', 'batch', 'permutations'].filter(k => S.handles[k]).length;
+  $('st-out').textContent = n ? `${n} of 4 set` : 'Using Downloads';
+  $('st-out').className = 'badge ' + (n ? 'badge-active' : 'badge-inactive');
+}
+async function renderFolderModal() {
+  const box = $('folder-rows'); box.replaceChildren();
+  for (const k of KINDS) {
+    const h = S.handles[k.id]; let status = 'Not set';
+    if (h) { try { status = (await h.queryPermission({ mode: k.id === 'wildcards' ? 'read' : 'readwrite' })) === 'granted' ? `${h.name}` : `${h.name} — click Allow to re-enable`; } catch { status = h.name + ' (unavailable)'; } }
+    const row = document.createElement('div'); row.className = 'folder-row';
+    const info = document.createElement('div');
+    info.innerHTML = `<div class="t">${esc(k.label)}</div><div class="s">${esc(status)}</div><div class="s">${esc(k.hint)}</div>`;
+    const btns = document.createElement('div'); btns.className = 'row';
+    const set = document.createElement('button'); set.className = 'btn btn-slate'; set.textContent = h ? 'Change…' : 'Set…';
+    set.onclick = async () => { const d = await pickDir(k.id); if (d) await setFolder(k.id, d); };
+    btns.appendChild(set);
+    if (h) {
+      const allow = document.createElement('button'); allow.className = 'btn btn-slate'; allow.textContent = 'Allow';
+      allow.onclick = async () => { try { await ensurePerm(h, k.id === 'wildcards' ? 'read' : 'readwrite'); if (k.id === 'wildcards') await scanFolder(h); } catch (e) { toast(e.message, 'error'); } renderFolderModal(); refreshStatus(); };
+      const clr = document.createElement('button'); clr.className = 'btn btn-slate'; clr.textContent = 'Clear';
+      clr.onclick = async () => { S.handles[k.id] = null; await idbSet(k.id, null); if (k.id === 'wildcards') { S.index.clear(); rebuildAliases(); S.source = 'none'; renderList(); } refreshStatus(); renderFolderModal(); };
+      btns.append(allow, clr);
+    }
+    row.append(info, btns); box.appendChild(row);
+  }
+}
+
+/* ---------- scanning ---------- */
+const isOutputName = n => opts.hideOutputs && /^(batch|all-prompts|sample)_/i.test(n);
+async function walkDir(dir, prefix, recurse, out) {
+  for await (const [name, h] of dir.entries()) {
+    if (h.kind === 'file') { if (/\.txt$/i.test(name) && !isOutputName(name)) out.push({ path: prefix + name, src: h }); }
+    else if (recurse && !name.startsWith('.') && name.toLowerCase() !== 'node_modules') await walkDir(h, prefix + name + '/', recurse, out);
+  }
+}
+function installIndex(list, source) {
+  S.index.clear(); S.source = source;
+  for (const it of list) {
+    const key = it.path.replace(/\.txt$/i, '').toLowerCase();
+    S.index.set(key, makeEntry(key, it.path, it.src, it.virtualText));
+  }
+  rebuildAliases(); S.selected = null; $('inspector').classList.add('hidden');
+  renderList(); refreshStatus(); afterIndexChange();
+}
+async function scanFolder(handle, request = false) {
+  try {
+    if (request) { if (!(await ensurePerm(handle, 'read'))) { toast('Folder access was not granted.', 'error'); return; } }
+    else if ((await handle.queryPermission({ mode: 'read' })) !== 'granted') { if (!(await handle.requestPermission({ mode: 'read' }) === 'granted')) { refreshStatus(); return; } }
+    const out = []; await walkDir(handle, '', opts.subfolders, out);
+    installIndex(out, 'folder');
+    $('btn-reconnect').classList.add('hidden');
+    toast(`Found ${out.length} .txt file${out.length === 1 ? '' : 's'} in ${handle.name}`, 'success');
+  } catch (e) { toast('Could not scan folder: ' + e.message, 'error'); refreshStatus(); }
+}
+function scanFallback(files) {
+  const out = [];
+  for (const f of files) {
+    if (!/\.txt$/i.test(f.name) || isOutputName(f.name)) continue;
+    const parts = (f.webkitRelativePath || f.name).split('/'); parts.shift();
+    if (!opts.subfolders && parts.length > 1) continue;
+    out.push({ path: parts.join('/') || f.name, src: f });
+  }
+  installIndex(out, 'fallback'); toast(`Loaded ${out.length} .txt files (this browser can’t remember the folder)`, 'success');
+}
+const DEMO = {
+  'settings10000.txt': 'a cozy vintage library with dusty leather-bound books\na neon-drenched cyberpunk alleyway in the rain\na minimalist futuristic laboratory overlooking Earth\nan enchanted forest with bioluminescent flora\na sunlit bohemian coffee shop in Kyoto',
+  'gender.txt': 'male __hair-men__\nfemale __hair-women__\nintersex __hair-intersex__',
+  'hair-men.txt': 'short\nlong', 'hair-women.txt': 'long wavy\nshort bob\ncurly', 'hair-intersex.txt': 'pastel wavy\nundercut',
+  'env_setting.txt': 'a mountain observatory\na crystal cavern\na rooftop garden', 'env_scene.txt': 'volumetric fog\nrim lighting and drifting dust\nwarm golden-hour reflections',
+  'env_props.txt': 'scattered brass gears\nholographic displays\noverflowing planters', 'env_weather.txt': 'heavy drizzle\na clear starry sky\ncrisp morning mist',
+  'env_time.txt': 'dusk\nmidnight\ntwilight\nmid-day'
+};
+function loadDemo() {
+  installIndex(Object.entries(DEMO).map(([p, t]) => ({ path: p, virtualText: t })), 'demo');
+  if (!ed.value.trim()) { ed.value = 'The scene: __settings10000__\nHe is photographed in this setting: __settings10000__\nThe subject is a __gender__ hair.\nThe location is __env_setting__, with __env_scene__ and __env_props__. The weather is __env_weather__ and the time is __env_time__.'; onEditorInput(); }
+  toast('Demo files loaded (in memory only)', 'success');
+}
+function afterIndexChange() { clearCounts(); highlight(); refreshSample(); scheduleCount(); }
+
+/* ---------- file list + inspector ---------- */
+function renderList() {
+  const list = $('wc-list'); list.replaceChildren(); rowCounts.clear();
+  const q = $('filter').value.trim().toLowerCase().replace(/\\/g, '/');
+  const keys = [...S.index.keys()].filter(k => !q || k.includes(q)).sort();
+  $('file-count').textContent = `${S.index.size} file${S.index.size === 1 ? '' : 's'}`;
+  $('empty-state').classList.toggle('hidden', S.index.size > 0);
+  for (const k of keys.slice(0, LIST_CAP)) {
+    const e = S.index.get(k);
+    const row = document.createElement('div'); row.className = 'wc-row' + (k === S.selected ? ' sel' : ''); row.draggable = true; row.dataset.key = k;
+    const info = document.createElement('div'); info.style.minWidth = 0;
+    const tag = document.createElement('div'); tag.className = 'tag truncate'; tag.textContent = `__${k}__`;
+    const sub = document.createElement('div'); sub.className = 'sub truncate'; sub.textContent = e.path;
+    info.append(tag, sub);
+    const cnt = document.createElement('span'); cnt.className = 'cnt'; cnt.textContent = e.lines ? e.lines.length.toLocaleString() : '';
+    rowCounts.set(k, cnt);
+    const add = document.createElement('button'); add.className = 'btn-icon'; add.title = 'Insert at cursor'; add.textContent = '+';
+    add.onclick = ev => { ev.stopPropagation(); insertTag(k); };
+    const right = document.createElement('div'); right.className = 'row'; right.append(cnt, add);
+    row.append(info, right);
+    row.addEventListener('dragstart', ev => { ev.dataTransfer.setData('text/plain', `__${k}__`); ev.dataTransfer.effectAllowed = 'copy'; });
+    row.addEventListener('click', () => selectEntry(k));
+    row.addEventListener('dblclick', () => insertTag(k));
+    list.appendChild(row);
+  }
+  if (keys.length > LIST_CAP) { const n = document.createElement('div'); n.className = 'sub'; n.style.padding = '.4rem'; n.textContent = `Showing ${LIST_CAP} of ${keys.length}. Use the filter to narrow the list.`; list.appendChild(n); }
+}
+onEntryLoaded = e => { const c = rowCounts.get(e.key); if (c) c.textContent = e.lines.length.toLocaleString(); };
+function insertTag(key) { insertAtCursor(`__${key}__`); }
+function insertAtCursor(text) { const s = ed.selectionStart, e = ed.selectionEnd; ed.setRangeText(text, s, e, 'end'); ed.focus(); onEditorInput(); }
+
+async function selectEntry(key) {
+  const e = S.index.get(key); if (!e) return;
+  S.selected = key;
+  document.querySelectorAll('.wc-row').forEach(r => r.classList.toggle('sel', r.dataset.key === key));
+  $('inspector').classList.remove('hidden'); $('insp-title').textContent = e.path; $('insp-text').value = 'Loading…';
+  await loadEntry(e);
+  if (S.selected !== key) return;
+  $('insp-text').value = e.raw;
+  updateInspectorMeta();
+}
+function updateInspectorMeta() {
+  const e = S.index.get(S.selected); if (!e) return;
+  const text = $('insp-text').value;
+  $('insp-count').textContent = `${text.split(/\r?\n/).filter(l => l.trim() && !(opts.comments && l.trim().startsWith('#'))).length.toLocaleString()} options`;
+  const box = $('insp-refs'); box.replaceChildren();
+  const names = [...new Set([...text.matchAll(new RegExp(TAG_SRC, 'gu'))].map(m => normName(m[1])))].slice(0, 30);
+  for (const nm of names) {
+    const t = resolve(nm); const c = document.createElement('span'); c.className = 'chip' + (t ? '' : ' bad'); c.textContent = `__${nm}__`;
+    if (t) c.onclick = () => selectEntry(t.key); else c.title = 'Not found'; box.appendChild(c);
+  }
+}
+async function saveInspector() {
+  const e = S.index.get(S.selected); if (!e) return;
+  const text = $('insp-text').value;
+  if (e.src && typeof e.src.createWritable === 'function') {
+    try {
+      if (!(await ensurePerm(e.src, 'readwrite'))) { toast('Write access was not granted.', 'error'); return; }
+      const w = await e.src.createWritable(); await w.write(toEol(text)); await w.close();
+      toast('Saved ' + e.path, 'success');
+    } catch (err) { toast('Could not save: ' + err.message, 'error'); return; }
+  } else {
+    downloadBlob(safeName(e.path.split('/').pop()), new Blob([toEol(text)], { type: 'text/plain' }));
+    toast('This file can’t be written in place, so a copy was downloaded. In-app changes still apply.', 'info');
+  }
+  setRaw(e, text); e.virtualText = e.src ? e.virtualText : text; clearCounts(); onEntryLoaded(e); updateInspectorMeta(); afterIndexChange();
+}
+async function newWildcard() {
+  const nm = await askText('New wildcard file name', 'my-wildcard'); if (!nm) return;
+  const file = safeName(nm); const key = file.replace(/\.txt$/i, '').toLowerCase();
+  if (S.index.has(key)) { toast('A wildcard with that name already exists.', 'error'); return; }
+  let src = null, vt = '';
+  const dir = S.handles.wildcards;
+  if (dir && S.source === 'folder') {
+    try { if (!(await ensurePerm(dir, 'readwrite'))) throw new Error('write access not granted'); src = await dir.getFileHandle(file, { create: true }); }
+    catch (e) { toast('Could not create file: ' + e.message, 'error'); return; }
+  }
+  const entry = makeEntry(key, file, src, src ? null : vt); S.index.set(key, entry); rebuildAliases(); setRaw(entry, ''); renderList(); afterIndexChange(); selectEntry(key);
+}
+
+/* ---------- editor ---------- */
+function highlight() {
+  const t = ed.value; let html = '', last = 0;
+  const re = new RegExp(TAG_SRC, 'gu'); let m;
+  while ((m = re.exec(t))) {
+    html += esc(t.slice(last, m.index)); last = m.index + m[0].length;
+    html += `<mark class="${resolve(normName(m[1])) ? 'ok' : 'bad'}">${esc(m[0])}</mark>`;
+  }
+  html += esc(t.slice(last)); bd.innerHTML = html + '\n'; bd.scrollTop = ed.scrollTop;
+}
+function markDirty() { S.tpl.dirty = true; $('dirty').classList.remove('hidden'); }
+const saveDraft = debounce(() => lsSet('wps.draft', { text: ed.value, name: S.tpl.name }), 400);
+function onEditorInput() {
+  markDirty(); highlight(); updateSuggest();
+  if (opts.liveUpdate) refreshSampleSoon(); else $('sample-view').classList.add('stale');
+  scheduleCount(); saveDraft();
+}
+const refreshSampleSoon = debounce(() => refreshSample(), 90);
+
+function updateSuggest() {
+  const box = $('suggest'); const before = ed.value.slice(0, ed.selectionStart);
+  const m = /__([\p{L}\p{N}_\-./\\]*)$/u.exec(before);
+  if (!m || m[1].includes('__') || ed.selectionStart !== ed.selectionEnd) { box.classList.add('hidden'); return; }
+  const q = m[1].toLowerCase().replace(/\\/g, '/');
+  const hits = [...S.index.keys()].filter(k => k.includes(q)).sort((a, b) => (a.startsWith(q) ? 0 : 1) - (b.startsWith(q) ? 0 : 1) || a.length - b.length).slice(0, 8);
+  if (!hits.length) { box.classList.add('hidden'); return; }
+  box.replaceChildren();
+  hits.forEach((k, i) => { const d = document.createElement('div'); d.textContent = `__${k}__`; if (i === 0) d.className = 'on'; d.dataset.key = k; d.onmousedown = ev => { ev.preventDefault(); acceptSuggest(k, q.length); }; box.appendChild(d); });
+  box.dataset.q = q.length; box.classList.remove('hidden');
+}
+function acceptSuggest(key, qLen) {
+  const pos = ed.selectionStart; ed.setRangeText(key + '__', pos - qLen, pos, 'end'); $('suggest').classList.add('hidden'); onEditorInput();
+}
+ed.addEventListener('keydown', e => {
+  const box = $('suggest'); if (box.classList.contains('hidden')) return;
+  const items = [...box.children]; let i = items.findIndex(x => x.classList.contains('on'));
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); items[i]?.classList.remove('on'); i = (i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length; items[i].classList.add('on'); }
+  else if (e.key === 'Enter' || e.key === 'Tab') { if (e.ctrlKey || e.metaKey) return; e.preventDefault(); acceptSuggest(items[i].dataset.key, +box.dataset.q); }
+  else if (e.key === 'Escape') { box.classList.add('hidden'); }
+});
+ed.addEventListener('input', onEditorInput);
+ed.addEventListener('scroll', () => { bd.scrollTop = ed.scrollTop; });
+ed.addEventListener('click', updateSuggest);
+ed.addEventListener('blur', () => setTimeout(() => $('suggest').classList.add('hidden'), 120));
+const wrap = $('editor-wrap');
+['dragenter', 'dragover'].forEach(ev => ed.addEventListener(ev, () => wrap.classList.add('drop')));
+['dragleave', 'drop', 'dragend'].forEach(ev => ed.addEventListener(ev, () => wrap.classList.remove('drop')));
+ed.addEventListener('drop', () => setTimeout(onEditorInput, 0));
+new ResizeObserver(highlight).observe(ed);
+
+/* ---------- sample ---------- */
+function renderTreeInto(parent, nodes, depth) {
+  for (const n of nodes) {
+    if (n.k === 'text') parent.appendChild(document.createTextNode(n.v));
+    else if (n.k === 'miss') { const s = document.createElement('span'); s.className = 'seg miss'; s.textContent = n.v; parent.appendChild(s); }
+    else {
+      const s = document.createElement('span'); s.className = 'seg d' + (depth % 4); s.dataset.key = n.key;
+      s.title = n.k === 'wc' ? `__${n.name}__ — option ${n.idx + 1} of ${n.entry.lines.length.toLocaleString()} — click to re-roll` : `{choice} — option ${n.idx + 1} of ${n.n} — click to re-roll`;
+      renderTreeInto(s, n.kids, depth + 1); parent.appendChild(s);
+    }
+  }
+}
+async function refreshSample() {
+  const tok = ++evalTok, text = ed.value, view = $('sample-view');
+  if (!text.trim()) { view.replaceChildren(document.createTextNode('Your sample will appear here.')); S.tree = null; S.final = ''; updateFinal(); renderTrace([]); S.issuesSample = null; renderIssues(); return; }
+  const issues = newIssues();
+  let tree; try { tree = await evaluate(text, S.seed, S.overrides, issues); } catch (e) { toast('Evaluation error: ' + e.message, 'error'); return; }
+  if (tok !== evalTok) return;
+  S.tree = tree; S.issuesSample = issues; S.final = finalize(flat(tree));
+  view.replaceChildren(); renderTreeInto(view, tree, 0);
+  view.classList.remove('stale'); view.classList.toggle('para', opts.onePara); view.classList.toggle('plain', !opts.colorize);
+  updateFinal(); renderTrace(tree); renderIssues();
+}
+function updateFinal() {
+  $('final-text').textContent = S.final;
+  const w = S.final.trim() ? S.final.trim().split(/\s+/).length : 0;
+  $('final-stats').textContent = S.final ? `· ${S.final.length.toLocaleString()} characters · ${w.toLocaleString()} words` : '';
+}
+function renderTrace(tree) {
+  const box = $('trace'); box.replaceChildren(); let n = 0;
+  (function walk(nodes, depth) {
+    for (const x of nodes) {
+      if (x.k === 'text') continue;
+      const row = document.createElement('div'); row.className = 'trace-row'; row.style.marginLeft = Math.min(depth, 6) * 12 + 'px';
+      const b = document.createElement('span'); const v = document.createElement('span'); v.className = 'v';
+      if (x.k === 'miss') { b.className = 'badge badge-bad'; b.textContent = 'problem'; v.textContent = x.v; v.style.color = '#fda4af'; row.append(b, v); box.appendChild(row); continue; }
+      n++; b.className = 'badge badge-indigo';
+      if (x.k === 'wc') { b.textContent = `__${x.name}__`; v.textContent = `[${x.idx + 1}/${x.entry.lines.length}] ${x.entry.lines[x.idx]}`; }
+      else { b.textContent = '{choice}'; v.textContent = `[${x.idx + 1}/${x.n}] ${flat(x.kids)}`; }
+      row.append(b, v); box.appendChild(row); walk(x.kids, depth + 1);
+    }
+  })(tree, 0);
+  $('trace-sum').textContent = `(${n} replacement${n === 1 ? '' : 's'})`;
+  if (!tree.length || !n) box.textContent = 'No wildcards in the template yet.';
+}
+function renderIssues() {
+  const box = $('issues'); box.replaceChildren();
+  const miss = new Set(), empty = new Set(), cyc = new Set();
+  for (const s of [S.issuesSample, S.issuesCount]) if (s) { s.missing.forEach(x => miss.add(x)); s.empty.forEach(x => empty.add(x)); s.cyclic.forEach(x => cyc.add(x)); }
+  const add = (cls, txt) => { const b = document.createElement('span'); b.className = 'badge ' + cls; b.textContent = txt; box.appendChild(b); };
+  miss.forEach(x => add('badge-bad', `Missing file: ${x}`)); empty.forEach(x => add('badge-warn', `Empty file: ${x}`)); cyc.forEach(x => add('badge-warn', `Circular reference: ${x}`));
+  if (!box.children.length) add('badge-active', ed.value.trim() ? 'No problems found' : 'Nothing to check yet');
+}
+$('sample-view').addEventListener('click', ev => {
+  const s = ev.target.closest('.seg[data-key]'); if (!s) return;
+  S.overrides.set(s.dataset.key, randomSeed()); refreshSample();
+});
+function rollAll() { S.seed = randomSeed(); S.overrides.clear(); $('seed').value = S.seed; refreshSample(); }
+$('btn-roll').onclick = rollAll;
+$('seed').addEventListener('change', () => { let v = parseInt($('seed').value, 10); if (!Number.isFinite(v) || v < 0) v = randomSeed(); S.seed = v >>> 0; $('seed').value = S.seed; S.overrides.clear(); refreshSample(); });
+$('btn-copy').onclick = async () => {
+  if (!S.final) return;
+  try { await navigator.clipboard.writeText(S.final); } catch { const t = document.createElement('textarea'); t.value = S.final; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+  toast('Copied to clipboard', 'success');
+};
+$('btn-save-sample').onclick = async () => { if (!S.final) return toast('Nothing to save yet.', 'error'); await saveSmall('samples', `sample_${tplSlug()}_${stamp()}.txt`, toEol(S.final) + eol()); };
+
+/* ---------- counts ---------- */
+const scheduleCount = debounce(refreshCount, 450);
+async function refreshCount() {
+  const tok = ++countTok; const ast = parse(ed.value, opts.inline); const refs = refsIn(ast).length;
+  const label = $('perm-count'), badge = $('perm-badge');
+  if (!refs) { S.total = null; S.issuesCount = null; label.textContent = 'Combinations: – (no wildcards)'; badge.textContent = 'No wildcards'; badge.className = 'badge badge-inactive'; updatePermButton(); renderIssues(); return; }
+  label.textContent = 'Counting…';
+  const ok = await preload(ast, () => tok !== countTok); if (!ok || tok !== countTok) return;
+  const ctx = { issues: newIssues(), stack: new Set() };
+  const total = countNodes(ast, ctx); if (tok !== countTok) return;
+  S.total = total; S.issuesCount = ctx.issues;
+  label.textContent = `Combinations: ${fmtBig(total)}`;
+  badge.textContent = refs === 1 ? '1 wildcard' : `${refs} wildcards`; badge.className = 'badge ' + (refs === 1 ? 'badge-active' : 'badge-indigo');
+  updatePermButton(); renderIssues();
+}
+function updatePermButton() {
+  const refs = refsIn(parse(ed.value, opts.inline)).length;
+  const allowed = refs === 1 || (opts.permMulti && refs > 1);
+  $('btn-perm').disabled = !allowed || S.total == null;
+  $('btn-perm').title = allowed ? '' : 'The template needs exactly one wildcard reference (or tick “Allow several wildcards”).';
+}
+
+/* ---------- batch ---------- */
+function setProg(prefix, show, pct, txt) { $(prefix + '-prog').classList.toggle('hidden', !show); $(prefix + '-bar').style.width = pct + '%'; $(prefix + '-txt').textContent = txt || ''; }
+$('btn-batch').onclick = async () => {
+  if (!ed.value.trim()) return toast('The template is empty.', 'error');
+  let count = Math.min(1000, Math.max(1, parseInt($('batch-count').value, 10) || 50)); $('batch-count').value = count; opts.batchCount = count; saveOpts();
+  const sink = await openSink('batch', `batch_${tplSlug()}_${count}_${stamp()}.txt`); if (!sink) return;
+  const mine = job.batch = { cancel: false }; $('btn-batch').disabled = true; $('btn-batch-cancel').classList.remove('hidden');
+  const lines = []; const seen = new Set(); let dupes = 0;
+  try {
+    const rnd = opts.batchRepro ? null : randomSeed;
+    for (let i = 0; i < count && !mine.cancel; i++) {
+      let line = '', seed = 0;
+      for (let attempt = 0; attempt < 30; attempt++) {
+        seed = opts.batchRepro ? xmur3(`${S.seed}:${i}:${attempt}`) : rnd();
+        const tree = await evaluate(ed.value, seed, new Map(), newIssues());
+        line = finalize(flat(tree));
+        if (!opts.batchUnique || !seen.has(line)) break;
+        if (attempt === 29) line = null;
+      }
+      if (line === null) { dupes++; if (dupes >= 5) break; i--; continue; }
+      seen.add(line); lines.push(opts.batchSeedPrefix ? `${seed} | ${line}` : line);
+      if (i % 20 === 0 || i === count - 1) { setProg('batch', true, Math.round((lines.length / count) * 100), `${lines.length} / ${count}`); await tick(); }
+    }
+    if (mine.cancel) { await sink.abort(); toast('Batch cancelled. Nothing was saved.', 'info'); }
+    else {
+      await sink.write(lines.join(eol()) + eol()); await sink.close();
+      toast(`Saved ${lines.length} prompts to ${sink.where}` + (lines.length < count ? ' (fewer unique prompts were possible)' : ''), 'success');
+      $('batch-preview').textContent = lines.slice(0, 10).join('\n') + (lines.length > 10 ? `\n… and ${lines.length - 10} more` : ''); $('batch-preview-wrap').classList.remove('hidden');
+    }
+  } catch (e) { await sink.abort(); toast('Batch failed: ' + e.message, 'error'); }
+  $('btn-batch').disabled = false; $('btn-batch-cancel').classList.add('hidden'); setTimeout(() => setProg('batch', false, 0, ''), 1500);
+};
+$('btn-batch-cancel').onclick = () => { if (job.batch) job.batch.cancel = true; };
+
+/* ---------- all possible prompts ---------- */
+$('btn-perm').onclick = async () => {
+  const ast = parse(ed.value, opts.inline); const refs = refsIn(ast).length;
+  if (!(refs === 1 || (opts.permMulti && refs > 1))) return toast('The template needs exactly one wildcard reference.', 'error');
+  const cap = Math.max(1, parseInt($('perm-cap').value, 10) || 100000); opts.permCap = cap; saveOpts();
+  const total = S.total;
+  const sink = await openSink('permutations', `all-prompts_${tplSlug()}_${stamp()}.txt`); if (!sink) return;
+  const mine = job.perm = { cancel: false }; $('btn-perm').disabled = true; $('btn-perm-cancel').classList.remove('hidden');
+  let written = 0, scanned = 0; const seen = opts.permDedupe ? new Set() : null; let buf = [];
+  try {
+    await preload(ast);
+    const goal = total != null && total < BigInt(cap) ? Number(total) : cap;
+    for (const raw of enumNodes(ast, 0, [])) {
+      scanned++;
+      const line = finalize(raw);
+      if (seen) { if (seen.has(line)) { if (scanned % 5000 === 0) await tick(); continue; } seen.add(line); }
+      buf.push(line); written++;
+      if (buf.length >= 2000) { await sink.write(buf.join(eol()) + eol()); buf = []; setProg('perm', true, Math.min(100, Math.round(written / goal * 100)), `${written.toLocaleString()} written`); await tick(); if (mine.cancel) break; }
+      if (written >= cap) break;
+    }
+    if (mine.cancel) { await sink.abort(); toast('Export cancelled. Nothing was saved.', 'info'); }
+    else {
+      if (buf.length) await sink.write(buf.join(eol()) + eol());
+      await sink.close();
+      const capped = written >= cap && total != null && total > BigInt(cap);
+      toast(`Saved ${written.toLocaleString()} prompts to ${sink.where}` + (capped ? `. Stopped at the ${cap.toLocaleString()}-line limit; raise “Maximum lines” for more.` : ''), capped ? 'info' : 'success');
+    }
+  } catch (e) { await sink.abort(); toast('Export failed: ' + e.message, 'error'); }
+  $('btn-perm').disabled = false; $('btn-perm-cancel').classList.add('hidden'); updatePermButton(); setTimeout(() => setProg('perm', false, 0, ''), 1500);
+};
+$('btn-perm-cancel').onclick = () => { if (job.perm) job.perm.cancel = true; };
+
+/* ---------- templates ---------- */
+function setTplName(n) { S.tpl.name = n; $('tpl-name').value = n; }
+function confirmDiscard() { return !S.tpl.dirty || !ed.value.trim() || confirm('This template has unsaved changes. Discard them?'); }
+function loadTemplateText(text, name, handle) {
+  ed.value = text.replace(/\r\n?/g, '\n'); setTplName(name.replace(/\.txt$/i, '')); S.tpl.handle = handle || null;
+  S.tpl.dirty = false; $('dirty').classList.add('hidden'); S.overrides.clear(); highlight(); scheduleCount(); saveDraft();
+  refreshSample().then(() => {
+    if (!text.includes('__')) return;
+    if (!S.index.size) { toast('No wildcard files are loaded yet. Choose or Reconnect the wildcard folder, then the prompt will fill in.', 'error'); return; }
+    const miss = [...(S.issuesSample ? S.issuesSample.missing : [])];
+    if (miss.length) toast(`Not found in your wildcard files: ${miss.map(m => '__' + m + '__').join(', ')}`, 'error');
+  });
+}
+async function saveTemplate(forceAs) {
+  if (!ed.value.trim()) return toast('The template is empty.', 'error');
+  const content = toEol(ed.value);
+  let name = safeName($('tpl-name').value || 'untitled-prompt');
+  if (!forceAs && S.tpl.handle && S.tpl.handle.name.toLowerCase() === name.toLowerCase()) {
+    try {
+      if (await ensurePerm(S.tpl.handle, 'readwrite')) { const w = await S.tpl.handle.createWritable(); await w.write(content); await w.close(); markSaved(name); toast('Saved ' + name, 'success'); return; }
+    } catch (e) { toast('Overwrite failed (' + e.message + '). Choose a location.', 'error'); }
+  }
+  if (forceAs) { const nn = await askText('Save template as', name); if (!nn) return; name = safeName(nn); }
+  else if (!S.handles.templates && !window.showSaveFilePicker) { /* falls through to download */ }
+  const dir = S.handles.templates;
+  if (dir && !(S.tpl.handle && S.tpl.handle.name === name)) {
+    try { if ((await dir.queryPermission({ mode: 'readwrite' })) === 'granted') { try { await dir.getFileHandle(name); if (!confirm(`“${name}” already exists in ${dir.name}. Replace it?`)) return; } catch { /* does not exist */ } } } catch { /* ignore */ }
+  }
+  const sink = await saveSmall('templates', name, content);
+  if (sink) { S.tpl.handle = sink.fh || null; markSaved(name); }
+}
+function markSaved(name) { setTplName(name.replace(/\.txt$/i, '')); S.tpl.dirty = false; $('dirty').classList.add('hidden'); saveDraft(); }
+async function openTemplateDialog() {
+  if (!confirmDiscard()) return;
+  const dir = S.handles.templates;
+  if (dir) {
+    try {
+      if (await ensurePerm(dir, 'readwrite')) {
+        const names = []; for await (const [n, h] of dir.entries()) if (h.kind === 'file' && /\.txt$/i.test(n)) names.push([n, h]);
+        names.sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
+        $('open-where').textContent = names.length ? `Templates in ${dir.name}:` : `No .txt files in ${dir.name} yet.`;
+        const box = $('open-list'); box.replaceChildren();
+        for (const [n, h] of names) { const b = document.createElement('button'); b.textContent = n; b.onclick = async () => { $('m-open').classList.add('hidden'); loadTemplateText(await fileText(await h.getFile()), n, h); toast('Opened ' + n, 'success'); }; box.appendChild(b); }
+        $('m-open').classList.remove('hidden'); return;
+      }
+    } catch (e) { toast('Could not read the templates folder: ' + e.message, 'error'); }
+  }
+  browseTemplate();
+}
+async function browseTemplate() {
+  $('m-open').classList.add('hidden');
+  if (typeof window.showOpenFilePicker === 'function') {
+    try {
+      const o = { id: 'templates', types: [{ description: 'Text file', accept: { 'text/plain': ['.txt'] } }] }; if (S.handles.templates) o.startIn = S.handles.templates;
+      const [fh] = await window.showOpenFilePicker(o); loadTemplateText(await fileText(await fh.getFile()), fh.name, fh); toast('Opened ' + fh.name, 'success');
+    } catch (e) { if (e.name !== 'AbortError') toast(e.message, 'error'); }
+  } else $('file-tpl').click();
+}
+$('file-tpl').addEventListener('change', async e => { const f = e.target.files[0]; if (f) loadTemplateText(await fileText(f), f.name, null); e.target.value = ''; });
+$('btn-new').onclick = () => { if (!confirmDiscard()) return; loadTemplateText('', 'untitled-prompt', null); ed.focus(); };
+$('btn-clear').onclick = () => { ed.value = ''; onEditorInput(); ed.focus(); };
+$('btn-open').onclick = openTemplateDialog;
+$('btn-browse').onclick = browseTemplate;
+$('btn-save').onclick = () => saveTemplate(false);
+$('btn-saveas').onclick = () => saveTemplate(true);
+$('tpl-name').addEventListener('input', () => { S.tpl.name = $('tpl-name').value; markDirty(); saveDraft(); });
+
+/* ---------- wiring ---------- */
+function saveOpts() { lsSet('wps.opts', opts); }
+function bindOptions() {
+  Object.assign(opts, lsGet('wps.opts', {}));
+  document.querySelectorAll('[data-opt]').forEach(el => {
+    const k = el.dataset.opt;
+    if (el.type === 'checkbox') el.checked = !!opts[k]; else el.value = opts[k];
+    el.addEventListener('change', async () => {
+      opts[k] = el.type === 'checkbox' ? el.checked : (parseInt(el.value, 10) || opts[k]); saveOpts();
+      if (k === 'comments' || k === 'inline') { reparseAll(); highlight(); S.overrides.clear(); }
+      if ((k === 'subfolders' || k === 'hideOutputs') && S.handles.wildcards && S.source === 'folder') await scanFolder(S.handles.wildcards);
+      if (k === 'permMulti') updatePermButton();
+      refreshSample(); scheduleCount();
+    });
+  });
+}
+$('btn-scan').onclick = async () => { const d = await pickDir('wildcards'); if (d) await setFolder('wildcards', d); };
+$('btn-rescan').onclick = () => S.handles.wildcards && scanFolder(S.handles.wildcards, true);
+$('btn-reconnect').onclick = () => S.handles.wildcards && scanFolder(S.handles.wildcards, true);
+$('fallback-dir').addEventListener('change', e => { scanFallback([...e.target.files]); e.target.value = ''; });
+$('btn-demo').onclick = loadDemo;
+$('btn-newwc').onclick = newWildcard;
+$('filter').addEventListener('input', renderList);
+$('insp-close').onclick = () => { $('inspector').classList.add('hidden'); S.selected = null; document.querySelectorAll('.wc-row.sel').forEach(r => r.classList.remove('sel')); };
+$('insp-save').onclick = saveInspector;
+$('insp-insert').onclick = () => S.selected && insertTag(S.selected);
+$('insp-text').addEventListener('input', updateInspectorMeta);
+$('btn-folders').onclick = () => { renderFolderModal(); $('m-folders').classList.remove('hidden'); };
+$('btn-help').onclick = () => $('m-help').classList.remove('hidden');
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => $(b.dataset.close).classList.add('hidden')));
+document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('mousedown', e => { if (e.target === m && m.id !== 'm-ask') m.classList.add('hidden'); }));
+$('btn-allout').onclick = async () => {
+  const d = await pickDir('batch'); if (!d) return;
+  for (const k of ['templates', 'samples', 'batch', 'permutations']) { S.handles[k] = d; await idbSet(k, d); }
+  refreshStatus(); renderFolderModal(); toast('All output folders set to ' + d.name, 'success');
+};
+document.addEventListener('keydown', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  const k = e.key.toLowerCase();
+  if (k === 's') { e.preventDefault(); saveTemplate(e.shiftKey); }
+  else if (k === 'enter') { e.preventDefault(); rollAll(); }
+  else if (k === 'o') { e.preventDefault(); openTemplateDialog(); }
+});
+window.addEventListener('beforeunload', e => { if (S.tpl.dirty && ed.value.trim()) { e.preventDefault(); e.returnValue = ''; } });
+
+/* ---------- start-up ---------- */
+(async function init() {
+  bindOptions();
+  S.seed = randomSeed(); $('seed').value = S.seed;
+  const draft = lsGet('wps.draft', null);
+  if (draft && draft.text) { ed.value = draft.text; setTplName(draft.name || 'untitled-prompt'); S.tpl.dirty = true; $('dirty').classList.remove('hidden'); } else setTplName('untitled-prompt');
+  if (!HAS_FSA) { const c = $('compat'); c.textContent = 'This browser can’t remember folders or save straight into them. Wildcard folders still load and saves go to Downloads. Use Microsoft Edge or Google Chrome for the full feature set.'; c.classList.remove('hidden'); }
+  for (const k of KINDS) { const h = await idbGet(k.id); if (h) S.handles[k.id] = h; }
+  refreshStatus(); renderList(); highlight();
+  const w = S.handles.wildcards;
+  if (w) {
+    try {
+      if ((await w.queryPermission({ mode: 'read' })) === 'granted') await scanFolder(w);
+      else { $('btn-reconnect').classList.remove('hidden'); toast('Click “Reconnect” to re-allow your wildcard folder.', 'info'); }
+    } catch { $('btn-reconnect').classList.remove('hidden'); }
+  }
+  refreshStatus(); await refreshSample(); scheduleCount();
+})();
+</script>
+</body>
+</html>
