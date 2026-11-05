@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guyanonymous' Prompt Studio</title>
+<meta name="description" content="A single-file, fully offline prompt builder for wildcard text files. Runs in your browser; nothing is uploaded.">
+<style>
+  :root { --bg:#090d16; --panel:#0f172a; --line:#1e293b; --text:#f1f5f9; --muted:#94a3b8; --indigo:#6366f1; --indigo-t:#a5b4fc; --emerald:#10b981; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  main { max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
+  h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.05rem; margin: 2.2rem 0 .6rem; color: var(--indigo-t); letter-spacing: .03em; text-transform: uppercase; }
+  .tag { display: inline-block; font-size: .75rem; padding: .1rem .55rem; border-radius: 99px; border: 1px solid var(--indigo); color: var(--indigo-t); vertical-align: middle; margin-left: .4rem; }
+  p.lead { color: var(--muted); font-size: 1.1rem; margin: 0 0 1.5rem; }
+  .cta { display: flex; flex-wrap: wrap; gap: .6rem; margin: 1.2rem 0; }
+  a.btn { display: inline-block; padding: .7rem 1.2rem; border-radius: .5rem; text-decoration: none; font-weight: 600; background: var(--indigo); color: #fff; }
+  a.btn.alt { background: transparent; border: 1px solid var(--line); color: var(--text); }
+  a.btn:hover { filter: brightness(1.15); }
+  ul { padding-left: 1.2rem; } li { margin: .3rem 0; }
+  .note { background: var(--panel); border: 1px solid var(--line); border-radius: .6rem; padding: .8rem 1rem; color: var(--muted); font-size: .95rem; }
+  a { color: var(--indigo-t); }
+  footer { margin-top: 3rem; color: var(--muted); font-size: .875rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+  code { background: var(--panel); padding: .05em .35em; border-radius: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Guyanonymous' Prompt Studio <span class="tag">v3.1</span></h1>
+  <p class="lead">A fully offline prompt builder for wildcard text files. Point it at your wildcard folder, design prompts with a live nested preview, and export in bulk. No install, no account, and nothing is uploaded.</p>
+
+  <div class="cta">
+    <a class="btn" href="guyanonymous_prompt_studio.html">Launch the app</a>
+    <a class="btn alt" href="guyanonymous_prompt_studio.html" download>Download the single file</a>
+    <a class="btn alt" href="https://github.com/Guyanonymous-x/guyanonymous_prompt_studio/blob/main/docs/GUIDE.md">User guide</a>
+  </div>
+
+  <div class="note">Use <strong>Microsoft Edge or Google Chrome</strong> on a computer for the full feature set (remembered folders and saving straight into folders). Your wildcard files never leave your machine: the page blocks every network request, and it can only read or write folders you choose.</div>
+
+  <h2>What it does</h2>
+  <ul>
+    <li>Scans a folder of <code>.txt</code> wildcards and builds prompts from <code>__filename__</code> tags</li>
+    <li>Live sample with nested wildcards that open up, re-roll, lock and choose-a-line</li>
+    <li>Reusable picks, weights and pick-several</li>
+    <li>Model profiles with a token gauge, plus prefix, suffix and negative prompt</li>
+    <li>Batch, sweep and all-combinations export as TXT, CSV or JSON</li>
+    <li>History, favourites, library health check, tabs, versions and projects</li>
+  </ul>
+
+  <h2>Good to know</h2>
+  <ul>
+    <li>The live page and a downloaded copy keep their own settings, history and remembered folders, because browsers store them per site.</li>
+    <li>The live page always runs the latest version. To keep a specific version, download it from the <a href="https://github.com/Guyanonymous-x/guyanonymous_prompt_studio/tags">tags page</a>.</li>
+    <li>See the <a href="https://github.com/Guyanonymous-x/guyanonymous_prompt_studio/blob/main/CHANGELOG.md">changelog</a> for every version.</li>
+  </ul>
+
+  <footer>
+    Free for non-commercial use; commercial use or integration into commercial products needs written permission. See the <a href="https://github.com/Guyanonymous-x/guyanonymous_prompt_studio/blob/main/LICENSE">license</a>.
+    &middot; <a href="https://github.com/Guyanonymous-x/guyanonymous_prompt_studio">Source on GitHub</a>
+  </footer>
+</main>
+</body>
+</html>

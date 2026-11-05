@@ -224,7 +224,7 @@ The **?** button in the header opens the in-app "Syntax and shortcuts" help.
 
 ### Releasing a new version
 
-1. Edit `guyanonymous_prompt_studio.html`. Update the title, the header badge and the exported-JSON app name to the new version.
+1. Edit `guyanonymous_prompt_studio.html`. Update the title, the header badge and the exported-JSON app name to the new version, and the version tag text in `index.html`.
 2. Add the new section to `CHANGELOG.md` (and to the Full Changelog below), and update `docs/` if features changed.
 3. Commit with a message beginning with the version, for example `v3.2: ...`.
 4. Tag it: `git tag -a v3.2 -m "v3.2: ..."`.
@@ -364,6 +364,10 @@ The first full rewrite of the original Gemini-generated prototype, keeping its l
 - Optional inline choices `{a|b|c}`, optional comment lines starting with `#`, tidy spacing and commas, Windows line endings option.
 - In-app wildcard file viewer and editor with Save.
 - Fallbacks for browsers without folder access (folder picker, Downloads).
+
+## Live version
+
+Once GitHub Pages is on, the app runs in the browser at https://guyanonymous-x.github.io/guyanonymous_prompt_studio/ (landing page in `index.html`, app in `guyanonymous_prompt_studio.html`). Nothing is uploaded; it works the same as the downloaded file.
 
 ## License
 
