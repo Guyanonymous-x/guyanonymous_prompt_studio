@@ -2,6 +2,8 @@
 
 A single-file, fully offline prompt builder for wildcard text files.
 
+**[Launch the app online](https://guyanonymous-x.github.io/guyanonymous_prompt_studio/)** (runs in your browser; nothing is uploaded)
+
 Current version: **v3.1**
 
 **Contents:** [Introduction](#introduction) · [What's New in v3.1](#whats-new-in-v31) · [Features](#features) · [Getting Started](#getting-started) · [Using the Features](#using-the-features) · [Full Changelog](#full-changelog) · [License](#license)
@@ -51,6 +53,8 @@ For reference, the previous release, **v3**, renamed the app to Guyanonymous' Pr
 - No install, server, account or internet connection.
 
 ### Download and open
+
+Prefer not to download? Use the live version: [https://guyanonymous-x.github.io/guyanonymous_prompt_studio/](https://guyanonymous-x.github.io/guyanonymous_prompt_studio/)
 
 1. Download `guyanonymous_prompt_studio.html` from this repository (it is always the latest version), or clone the repository.
 2. Open the file in Edge or Chrome (double-click it or drag it into a browser window).
@@ -229,6 +233,7 @@ The **?** button in the header opens the in-app "Syntax and shortcuts" help.
 3. Commit with a message beginning with the version, for example `v3.2: ...`.
 4. Tag it: `git tag -a v3.2 -m "v3.2: ..."`.
 5. Push the branch and tags: `git push origin main --tags`.
+6. Keep the live-app link at the top of this README's introduction (`https://guyanonymous-x.github.io/guyanonymous_prompt_studio/`) and in `index.html`.
 
 ## Full Changelog
 
