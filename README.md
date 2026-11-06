@@ -16,6 +16,8 @@ It is for people who keep wildcard folders for tools such as ComfyUI or Forge / 
 
 **Privacy.** The page blocks every network request (a content-security rule in the file), so nothing can be uploaded. It can only read and write folders you choose.
 
+![Prompt Studio with the built-in demo files: the wildcard list on the left, a template with green found tags in the editor, the filled-in sample below it with the nested __gender__ and __hair-women__ picks opened out, and the Output options card on the right.](docs/images/overview.png)
+
 ## What's New in v3.1
 
 Changes since v3:
@@ -113,6 +115,8 @@ Wildcard files can themselves contain `__other__` references, `{…}` choices an
 - **Remember…:** select text or tags, press **Remember…**, give it a name, and the app writes the `${name=…}` definition and leaves `${name}` in its place. The editor underlines each name in its own colour and marks undefined names red.
 - **Clear** empties the editor. The name box next to "Prompt template" sets the file name used when saving; an **unsaved** badge shows pending changes.
 
+![Typing __env in the template editor opens a list of matching wildcard files to insert.](docs/images/autocomplete.png)
+
 #### Reusing one pick (names, text overlays)
 
 Say `names.txt` holds character names and you want the same name in the prompt and in a sign:
@@ -134,6 +138,8 @@ ${hero=__names__}A portrait of ${hero}, holding a sign that reads "${hero}".
 - **Exactly what gets saved** is the final text after tidy, prefix, suffix and weight handling.
 - **Update sample as I type** (Output options) keeps the sample live while you edit.
 
+![The Sample panel: each filled-in wildcard is a coloured part, the remembered $who value opens out to show the wildcards inside it, and right-clicking "heavy drizzle" shows the Re-roll, Lock, Choose a line and Copy menu.](docs/images/sample-menu.png)
+
 ### Model and length
 
 Pick your model under **Model and length**. A gauge under "Exactly what gets saved" shows an estimated token count with the model's recommended length and hard cutoff.
@@ -144,6 +150,8 @@ Pick your model under **Model and length**. A gauge under "Exactly what gets sav
 - **Manage…** lets you edit any profile, **Save as new…**, copy or delete a profile or a whole family, **Import…** and **Export…** profiles, and **Revert all defaults** to the originals.
 - **Apply recommended options** sets single paragraph, tidy spacing and weight handling to suit the model.
 - **Check length over 200 rolls** shows the shortest, typical and longest prompts and how many exceed the limits.
+
+<img src="docs/images/model-lencheck.png" width="343" alt="The Model and length card set to Krea 2 on ComfyUI, with the profile notes and the result of Check length over 200 rolls: a token histogram and how many prompts pass the recommended length and cutoff.">
 
 ### Prefix, suffix and negative prompt
 
@@ -176,6 +184,10 @@ If no output folder is set, saves go to the browser's Downloads (a save dialog a
 - **Tabs** hold several templates at once, each with its own prefix, suffix, negative prompt and model. Press **+** in the tab strip for a new tab. Closing a tab keeps a version. Tabs and the draft are restored when you reopen the app.
 - **Versions…** lists autosaved and named versions (**Save a named version now**), compares them with the current text and restores them. **Label / pin…** and **Delete** manage them. They live inside this browser.
 - **Projects** (header) save the open tabs (with prefix, suffix, negative and model) and your output settings under a name. **Open**, **Update**, **Export…**, delete, and **Import file…**. Wildcard and output folders are not part of a project.
+
+![The Library health check listing an empty file, a wildcard that points to a missing file, a duplicate line with an Open and remove duplicates button, and an unused file.](docs/images/library-health.png)
+
+![The History window: recent samples with their template name and seed, each with Restore, Copy, Keep and Delete buttons.](docs/images/history.png)
 
 ### Folders
 
@@ -222,7 +234,7 @@ The **?** button in the header opens the in-app "Syntax and shortcuts" help.
 
 - [User guide](docs/GUIDE.md), [Changelog](CHANGELOG.md), [Share post](docs/SHARE_POST.md) (also as [copy-ready HTML](docs/SHARE_POST.html))
 - `guyanonymous_prompt_studio.html`: the app (always the latest version)
-- `docs/`: guide and share post
+- `docs/`: guide, share post, and the README screenshots in `docs/images/`
 - Every release is its own commit whose message starts with the version (see `git log`).
 - Large wildcard data archives (`*.zip`) are not stored in this repository.
 
