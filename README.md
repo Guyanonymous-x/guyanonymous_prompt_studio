@@ -4,9 +4,9 @@ A single-file, fully offline prompt builder for wildcard text files.
 
 **[Launch the app online](https://guyanonymous-x.github.io/guyanonymous_prompt_studio/)** (runs in your browser; nothing is uploaded)
 
-Current version: **v3.1**
+Current version: **v3.2**
 
-**Contents:** [Introduction](#introduction) · [What's New in v3.1](#whats-new-in-v31) · [Features](#features) · [Getting Started](#getting-started) · [Using the Features](#using-the-features) · [Full Changelog](#full-changelog) · [License](#license)
+**Contents:** [Introduction](#introduction) · [What's New in v3.2](#whats-new-in-v32) · [Features](#features) · [Getting Started](#getting-started) · [Using the Features](#using-the-features) · [Full Changelog](#full-changelog) · [License](#license)
 
 ## Introduction
 
@@ -16,14 +16,16 @@ It is for people who keep wildcard folders for tools such as ComfyUI or Forge / 
 
 **Privacy.** The page blocks every network request (a content-security rule in the file), so nothing can be uploaded. It can only read and write folders you choose.
 
-## What's New in v3.1
+## What's New in v3.2
 
-Changes since v3:
+Changes since v3.1:
 
-- The **MOSS-Image** model profile now treats about 4,000 tokens as its cutoff, with 3,000 recommended (previously 1,500 recommended, with a 4,096 cutoff).
-- The page title, header badge and the app name written into JSON exports now read v3.1.
+- **Big folders stay fast.** The wildcard list now draws the first 1,000 matching files at a time, with a "show 1,000 more" button and a filter box that narrows the whole set. Scanning 90,000 files used to freeze the page for several seconds while it drew every row; it now takes a fraction of a second.
+- The filter waits a moment after you stop typing before it re-draws.
+- For folders over 5,000 files, the focus auto-rescan compares file names only, instead of reading every file's size and date each time you return to the window. New or removed files are still noticed; edits made to an existing file outside the app need the **Rescan** button.
+- The page title, header badge and JSON export name now read v3.2.
 
-For reference, the previous release, **v3**, renamed the app to Guyanonymous' Prompt Studio and made every right-hand card collapsible (see the [Full Changelog](#full-changelog)).
+For reference, the previous release, **v3.1**, set the MOSS-Image limit to about 4,000 tokens (see the [Full Changelog](#full-changelog)).
 
 ## Features
 
@@ -238,6 +240,12 @@ The **?** button in the header opens the in-app "Syntax and shortcuts" help.
 ## Full Changelog
 
 Newest first. Earlier versions were called Offline Wildcard Prompt Studio. Dates are the commit dates in this repository's git history. The same notes, oldest first, are in [CHANGELOG.md](CHANGELOG.md).
+
+### v3.2: large folders (2026-11-09)
+
+**Changed**
+- Wildcard list shows 1,000 files at a time with "show 1,000 more"; filter is debounced. 90,000 files now load in roughly 0.15 s instead of about 4.6 s.
+- Auto-rescan on focus compares file names only for folders over 5,000 files.
 
 ### v3.1: MOSS-Image limit (2026-11-04)
 

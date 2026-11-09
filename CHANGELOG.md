@@ -1,6 +1,6 @@
 # Guyanonymous' Prompt Studio: Changelog
 
-From v1 to v3 (earlier versions were called Offline Wildcard Prompt Studio). Newest changes are at the bottom of each section's list; versions run oldest to newest.
+From v1 to v3.2 (earlier versions were called Offline Wildcard Prompt Studio). Newest changes are at the bottom of each section's list; versions run oldest to newest.
 
 ---
 
@@ -150,6 +150,12 @@ The first full rewrite of the original Gemini-generated prototype, keeping its l
 
 **Changed**
 - MOSS-Image profile now treats about 4,000 tokens as its cutoff, with 3,000 recommended (previously 1,500 recommended).
+
+## v3.2: large folders
+
+**Changed**
+- Wildcard list shows 1,000 files at a time with "show 1,000 more"; filter is debounced. 90,000 files now load in roughly 0.15 s instead of about 4.6 s.
+- Auto-rescan on focus compares file names only for folders over 5,000 files.
 
 ---
 

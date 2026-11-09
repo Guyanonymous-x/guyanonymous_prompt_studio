@@ -5,7 +5,7 @@
 <!-- Blocks every network request: the page cannot upload or download anything. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:; base-uri 'none'; form-action 'none'" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Guyanonymous' Prompt Studio v3.1</title>
+<title>Guyanonymous' Prompt Studio v3.2</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -275,7 +275,7 @@
   <div class="brand">
     <div class="brand-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
     <div>
-      <h1>Guyanonymous' Prompt Studio <span class="badge badge-indigo">v3.1</span> <span class="badge badge-active">Offline</span></h1>
+      <h1>Guyanonymous' Prompt Studio <span class="badge badge-indigo">v3.2</span> <span class="badge badge-active">Offline</span></h1>
       <p>Nothing is uploaded. The page can only read and write folders you choose.</p>
     </div>
   </div>
@@ -1195,13 +1195,19 @@ function loadDemo() {
 function afterIndexChange() { clearCounts(); highlight(); refreshSample(); scheduleCount(); }
 
 /* ---------- file list + inspector ---------- */
-function renderList() {
+let listLimit = 1000;                                   // rows drawn at once; huge folders stay fast
+function renderList(keepLimit) {
+  if (keepLimit !== true) listLimit = 1000;
   const list = $('wc-list'); list.replaceChildren(); rowCounts.clear();
   const q = $('filter').value.trim().toLowerCase().replace(/\\/g, '/');
-  const keys = [...S.index.keys()].filter(k => !q || k.includes(q)).sort();
-  $('file-count').textContent = `${S.index.size} file${S.index.size === 1 ? '' : 's'}`;
+  const keys = []; for (const k of S.index.keys()) if (!q || k.includes(q)) keys.push(k);
+  keys.sort();
+  $('file-count').textContent = q ? `${keys.length.toLocaleString()} of ${S.index.size.toLocaleString()} files` : `${S.index.size.toLocaleString()} file${S.index.size === 1 ? '' : 's'}`;
   $('empty-state').classList.toggle('hidden', S.index.size > 0);
-  for (const k of keys) {
+  let shown = keys.slice(0, listLimit);
+  if (S.selected && keys.length > listLimit && !shown.includes(S.selected) && keys.includes(S.selected)) shown.push(S.selected);
+  const frag = document.createDocumentFragment();
+  for (const k of shown) {
     const e = S.index.get(k);
     const row = document.createElement('div'); row.className = 'wc-row' + (k === S.selected ? ' sel' : ''); row.draggable = true; row.dataset.key = k; row.title = `__${k}__   (${e.path})`;
     const info = document.createElement('div'); info.style.minWidth = 0;
@@ -1217,7 +1223,15 @@ function renderList() {
     row.addEventListener('dragstart', ev => { ev.dataTransfer.setData('text/plain', `__${k}__`); ev.dataTransfer.effectAllowed = 'copy'; });
     row.addEventListener('click', () => selectEntry(k));
     row.addEventListener('dblclick', () => insertTag(k));
-    list.appendChild(row);
+    frag.appendChild(row);
+  }
+  list.appendChild(frag);
+  if (keys.length > listLimit) {
+    const more = document.createElement('div'); more.className = 'note'; more.style.cssText = 'padding:.5rem;text-align:center';
+    more.append(`Showing ${listLimit.toLocaleString()} of ${keys.length.toLocaleString()}. Type in the filter to narrow, or `);
+    const btn = document.createElement('button'); btn.className = 'btn btn-sm btn-slate'; btn.textContent = 'show 1,000 more';
+    btn.onclick = () => { listLimit += 1000; renderList(true); };
+    more.append(btn); list.appendChild(more);
   }
 }
 onEntryLoaded = e => { const c = rowCounts.get(e.key); if (c) c.textContent = e.lines.length.toLocaleString(); };
@@ -1872,7 +1886,7 @@ $('btn-reconnect').onclick = () => S.handles.wildcards && scanFolder(S.handles.w
 $('fallback-dir').addEventListener('change', e => { scanFallback([...e.target.files]); e.target.value = ''; });
 $('btn-demo').onclick = loadDemo;
 $('btn-newwc').onclick = newWildcard;
-$('filter').addEventListener('input', renderList);
+$('filter').addEventListener('input', debounce(() => renderList(), 150));
 $('insp-close').onclick = () => { $('inspector').classList.add('hidden'); S.selected = null; document.querySelectorAll('.wc-row.sel').forEach(r => r.classList.remove('sel')); };
 $('insp-save').onclick = saveInspector;
 $('insp-insert').onclick = () => S.selected && insertTag(S.selected);
@@ -2212,7 +2226,7 @@ function serializeRecords(part, fmt, startN) {
   if (fmt === 'csv') return '﻿' + ['n,seed,prompt,negative,picks'].concat(part.map((r, i) => [startN + i, r.seed, r.prompt, r.negative, r.picks.map(p => p.name + '=' + p.value).join('; ')].map(csvCell).join(','))).join(eol()) + eol();
   if (fmt === 'json') {
     const p = curProfile();
-    return JSON.stringify({ app: "Guyanonymous' Prompt Studio v3.1", template: S.tpl.name, model: p ? p.name : null, created: new Date().toISOString(), count: part.length,
+    return JSON.stringify({ app: "Guyanonymous' Prompt Studio v3.2", template: S.tpl.name, model: p ? p.name : null, created: new Date().toISOString(), count: part.length,
       items: part.map((r, i) => ({ n: startN + i, seed: r.seed, prompt: r.prompt, negative: r.negative || undefined, picks: Object.fromEntries(r.picks.map(x => [x.name, x.value])) })) }, null, 2) + eol();
   }
   return part.map(r => (opts.batchSeedPrefix ? `${r.seed} | ` : '') + r.prompt).join(eol()) + eol();
@@ -2442,7 +2456,10 @@ $('lib-tab-s').onclick = () => { lib.tab = 's'; renderLibrary(); }; $('lib-tab-h
 $('lib-tab-w').onclick = () => { lib.tab = 'w'; renderLibrary(); };
 $('insp-where') && ($('insp-where').onclick = () => { lib.tab = 'w'; openModal('m-lib'); libTabs(); const box = $('lib-body'); box.replaceChildren(); renderLibWhere(box, S.selected); });
 /* auto-rescan when the window regains focus */
-async function sigFrom(out) { const parts = []; for (const it of out) { try { const f = await it.src.getFile(); parts.push(`${it.path}|${f.size}|${f.lastModified}`); } catch { parts.push(it.path); } } return parts.sort().join(';'); }
+async function sigFrom(out) {
+  if (out.length > 5000) return out.map(it => it.path).sort().join(';');       // huge folder: names only (reading 90,000 file stats on every focus is what froze the app)
+  const parts = []; for (const it of out) { try { const f = await it.src.getFile(); parts.push(`${it.path}|${f.size}|${f.lastModified}`); } catch { parts.push(it.path); } } return parts.sort().join(';');
+}
 let lastAuto = 0, autoBusy = false;
 function inspectorDirty() { const e = S.index.get(S.selected); return !!(e && !$('inspector').classList.contains('hidden') && typeof e.raw === 'string' && $('insp-text').value !== e.raw && $('insp-text').value !== 'Loading…'); }
 window.addEventListener('focus', async () => {
