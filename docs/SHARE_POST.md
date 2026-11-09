@@ -1,4 +1,4 @@
-# Guyanonymous' Prompt Studio v3.1
+# Guyanonymous' Prompt Studio v3.3
 
 **A single-file, fully offline prompt builder for wildcard files.**
 
@@ -22,6 +22,8 @@ Wildcard folders get huge and nested, and it's hard to know what a template will
 - Sweep export: every line of one wildcard while the rest stays random
 - "All possible prompts" export for one wildcard (reused picks counted once)
 - History, favourites, library search, health check (missing refs, loops, duplicates), where-used, tabs, autosaved versions and projects
+- Folder view for the wildcard list, with file counts; stays fast with 90,000+ files
+- Model presets: save model, prefix, suffix and negative prompt together and load them per model
 - Collapsible tool cards, so the right-hand column shows only what you need
 - Remembers separate folders for wildcards, templates, samples, batches and exports
 
@@ -36,6 +38,8 @@ The included guide covers everything in about five minutes.
 
 ## Version history
 
+- **v3.3:** Folder view for the wildcard list (counts, collapse/expand all); faster Library search that stops at 500 matches and copes with 90,000+ files; model presets (model, prefix, suffix, negative and weight options saved by name, loaded automatically per model, exportable).
+- **v3.2:** Very large folders (90,000+ files) stay fast: the list draws 1,000 rows at a time with a filter, and the focus auto-rescan no longer reads every file.
 - **v3.1:** MOSS-Image profile updated to its 4,000-token limit.
 - **v3:** Renamed Guyanonymous' Prompt Studio. Every right-hand card collapses to its title bar (with Collapse all / Expand all, remembered between sessions).
 - **v2.5:** Model profiles with a token gauge; prefix, suffix and negative prompt; TXT/CSV/JSON batch export with split files and a matching negative file; sweep export; history and favourites; library search, health check and where-used; template tabs, autosaved versions and projects.
@@ -60,4 +64,4 @@ Free to use and share. Feedback, bug reports and feature ideas welcome.
 
 **Short version (for a character limit):**
 
-Guyanonymous' Prompt Studio v3.1: one HTML file, no install, nothing uploaded. Point it at your wildcard .txt folder and build prompts with a live nested preview, re-roll/lock/choose any part, reuse one pick across a prompt, model token gauge, batch/sweep/all-combinations export (TXT/CSV/JSON), history, library health check and projects. Works offline in Edge/Chrome. Guide included.
+Guyanonymous' Prompt Studio v3.3: one HTML file, no install, nothing uploaded. Point it at your wildcard .txt folder and build prompts with a live nested preview, re-roll/lock/choose any part, reuse one pick across a prompt, model token gauge, batch/sweep/all-combinations export (TXT/CSV/JSON), history, library health check and projects. Works offline in Edge/Chrome. Guide included.

@@ -1,4 +1,4 @@
-# Guyanonymous' Prompt Studio v3.1: User Guide
+# Guyanonymous' Prompt Studio v3.3: User Guide
 
 A single HTML file for building image-generation prompts out of wildcard text files. It runs in your browser, works offline and never uploads anything.
 
@@ -74,6 +74,15 @@ Pick your model under **Model and length**. A gauge under the sample shows an es
 - **Apply recommended options** sets single paragraph, tidy spacing and weight handling to suit the model.
 - **Check length over 200 rolls** shows the shortest, typical and longest prompts and how many exceed the limits.
 
+### Model presets
+
+The **Model presets** card saves the current model, frontend, prefix, suffix, negative prompt and the weight, single-paragraph and tidy options under a name.
+
+- **Save as new…** creates a preset. **Save** overwrites the selected one. **Delete** removes it.
+- Choose a preset from the list to load it.
+- Tick **Apply automatically when I pick this preset's model** and choosing that model under Model and length loads the preset. Only one preset per model can do this.
+- **Export…** writes your presets to a JSON file and **Import…** adds presets from one (imported presets start with automatic loading off).
+
 ## 6. Prefix, suffix and negative prompt
 
 Set text added to every copy, saved sample and export. They may contain wildcards, but are chosen separately from the template. **Remove (word:1.2) weights** applies when the chosen model ignores weights.
@@ -97,7 +106,7 @@ If no output folder is set, saves go to the browser's Downloads (a save dialog a
 ## 8. History, Library, Tabs, Versions, Projects
 
 - **History** keeps the last 60 samples. **★ Keep** stores favourites with their template. **Restore** brings back template, seed, locks and chosen lines.
-- **Library**: *Search lines* across every file; *Health check* finds empty files, missing references, loops, duplicate and near-duplicate lines, unbalanced braces and unused files; *Where used* shows which files and templates use a wildcard. In the file viewer, **Remove duplicates** cleans a file (then **Save file**).
+- **Library**: *Search lines* across every file (files are read several at a time with live progress, and the search stops at 500 matches; a very rare term in a huge library still has to read everything); *Health check* finds empty files, missing references, loops, duplicate and near-duplicate lines, unbalanced braces and unused files; *Where used* shows which files and templates use a wildcard. In the file viewer, **Remove duplicates** cleans a file (then **Save file**).
 - **Rescan on return** (Output options) refreshes the list when you come back to the window after editing files elsewhere.
 - **Tabs** hold several templates at once. Closing a tab keeps a version.
 - **Versions…** lists autosaved and named versions, compares them with the current text and restores them. They live inside this browser.
@@ -105,7 +114,9 @@ If no output folder is set, saves go to the browser's Downloads (a save dialog a
 
 ## 9. Folders
 
-**Folders** in the header sets separate remembered folders for wildcards, templates, single samples, batches and all-prompts exports. Windows may ask you to re-allow access after you reopen the app. Browsers refuse a few top-level system folders (Documents, Downloads, Desktop); pick a subfolder inside them.
+**The wildcard list** groups files by folder, with the number of files on each folder. Click a folder to open or close it. **Collapse all** and **Expand all** are under the filter box, typing in the filter opens every folder with a match, and **Folders: on/off** switches to a flat list (remembered). To keep very large libraries fast, the list draws 1,000 rows at a time with a **show 1,000 more** button. For folders over 5,000 files the automatic rescan on return compares file names only, so press **Rescan** after editing an existing file elsewhere.
+
+**Header Folders button:** the **Folders** button in the header sets separate remembered folders for wildcards, templates, single samples, batches and all-prompts exports. Windows may ask you to re-allow access after you reopen the app. Browsers refuse a few top-level system folders (Documents, Downloads, Desktop); pick a subfolder inside them.
 
 ## 10. Shortcuts
 
