@@ -4,9 +4,9 @@ A single-file, fully offline prompt builder for wildcard text files.
 
 **[Launch the app online](https://guyanonymous-x.github.io/guyanonymous_prompt_studio/)** (runs in your browser; nothing is uploaded)
 
-Current version: **v3.2**
+Current version: **v3.3**
 
-**Contents:** [Introduction](#introduction) · [What's New in v3.2](#whats-new-in-v32) · [Features](#features) · [Getting Started](#getting-started) · [Using the Features](#using-the-features) · [Full Changelog](#full-changelog) · [License](#license)
+**Contents:** [Introduction](#introduction) · [What's New in v3.3](#whats-new-in-v33) · [Features](#features) · [Getting Started](#getting-started) · [Using the Features](#using-the-features) · [Full Changelog](#full-changelog) · [License](#license)
 
 ## Introduction
 
@@ -16,16 +16,16 @@ It is for people who keep wildcard folders for tools such as ComfyUI or Forge / 
 
 **Privacy.** The page blocks every network request (a content-security rule in the file), so nothing can be uploaded. It can only read and write folders you choose.
 
-## What's New in v3.2
+## What's New in v3.3
 
-Changes since v3.1:
+Changes since v3.2:
 
-- **Big folders stay fast.** The wildcard list now draws the first 1,000 matching files at a time, with a "show 1,000 more" button and a filter box that narrows the whole set. Scanning 90,000 files used to freeze the page for several seconds while it drew every row; it now takes a fraction of a second.
-- The filter waits a moment after you stop typing before it re-draws.
-- For folders over 5,000 files, the focus auto-rescan compares file names only, instead of reading every file's size and date each time you return to the window. New or removed files are still noticed; edits made to an existing file outside the app need the **Rescan** button.
-- The page title, header badge and JSON export name now read v3.2.
+- **Folder view.** The wildcard list now groups files by folder, with a file count on each folder. Click a folder to open or close it; **Collapse all** and **Expand all** sit under the filter box. Typing in the filter opens every folder that has a match. **Folders: on/off** switches back to the flat list, and the choice is remembered.
+- **Faster Library search.** It reads files several at a time, shows live progress, and stops once it has 500 matches instead of reading the whole library first. In a folder over 20,000 files it reads, searches and discards each file, so memory stays flat. A new search cancels the one still running. Health check also reads files in parallel.
+- **Model presets.** A new card saves the model, frontend, prefix, suffix, negative prompt and the weight, single-paragraph and tidy options under a name. Tick "Apply automatically when I pick this preset's model" and choosing that model in "Model and length" loads the preset. Presets can be exported to a JSON file and imported on another machine.
+- The page title, header badge and JSON export name now read v3.3.
 
-For reference, the previous release, **v3.1**, set the MOSS-Image limit to about 4,000 tokens (see the [Full Changelog](#full-changelog)).
+For reference, the previous release, **v3.2**, kept very large folders fast (see the [Full Changelog](#full-changelog)).
 
 ## Features
 
@@ -240,6 +240,15 @@ The **?** button in the header opens the in-app "Syntax and shortcuts" help.
 ## Full Changelog
 
 Newest first. Earlier versions were called Offline Wildcard Prompt Studio. Dates are the commit dates in this repository's git history. The same notes, oldest first, are in [CHANGELOG.md](CHANGELOG.md).
+
+### v3.3: folder view, faster search, presets (2026-11-09)
+
+**Added**
+- Folder view for the wildcard list, with file counts, Collapse all, Expand all and a Folders on/off switch.
+- Model presets card: save, overwrite, delete, auto-load per model, export and import.
+
+**Changed**
+- Library search reads files in parallel, shows progress, stops at 500 matches, and does not keep files in memory for libraries over 20,000 files. Health check reads in parallel.
 
 ### v3.2: large folders (2026-11-09)
 

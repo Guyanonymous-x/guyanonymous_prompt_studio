@@ -5,7 +5,7 @@
 <!-- Blocks every network request: the page cannot upload or download anything. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:; base-uri 'none'; form-action 'none'" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Guyanonymous' Prompt Studio v3.2</title>
+<title>Guyanonymous' Prompt Studio v3.3</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -84,6 +84,10 @@
   .grow { flex: 1 1 0; min-width: 0; }
   .wc-list { flex: 1; overflow-y: auto; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem; min-height: 6rem; }
   .wc-row { padding: 0.4rem 0.5rem 0.4rem 0.65rem; background: var(--panel); border: 1px solid var(--line); border-radius: 0.375rem; cursor: grab; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+  .wc-folder { display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.5rem; border-radius: 0.375rem; cursor: pointer; font: 600 0.75rem var(--mono); color: #cbd5e1; user-select: none; }
+  .wc-folder:hover { background: #131d35; }
+  .wc-folder .arr { width: 0.8rem; color: var(--dim); }
+  .wc-folder .n { margin-left: auto; font-weight: 400; font-size: 0.625rem; color: var(--dim); }
   .wc-row:hover { border-color: var(--indigo); background: #131d35; }
   .wc-row.sel { border-color: var(--indigo); background: rgba(79,70,229,.18); }
   .wc-row .tag { font: 600 0.75rem var(--mono); color: #e2e8f0; }
@@ -275,7 +279,7 @@
   <div class="brand">
     <div class="brand-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
     <div>
-      <h1>Guyanonymous' Prompt Studio <span class="badge badge-indigo">v3.2</span> <span class="badge badge-active">Offline</span></h1>
+      <h1>Guyanonymous' Prompt Studio <span class="badge badge-indigo">v3.3</span> <span class="badge badge-active">Offline</span></h1>
       <p>Nothing is uploaded. The page can only read and write folders you choose.</p>
     </div>
   </div>
@@ -317,6 +321,11 @@
         <button id="btn-rescan" class="btn btn-slate" title="Re-scan the linked folder" disabled>Rescan</button>
       </div>
       <input type="text" id="filter" placeholder="Filter files…" />
+      <div class="row">
+        <button id="btn-tree" class="btn btn-slate btn-sm" title="Show files grouped by folder, or as one flat list">Folders: on</button>
+        <button id="btn-fold-all" class="btn btn-slate btn-sm" title="Collapse every folder">Collapse all</button>
+        <button id="btn-unfold-all" class="btn btn-slate btn-sm" title="Open every folder (shows the first 1,000 rows)">Expand all</button>
+      </div>
       <label class="chk" style="font-size:.6875rem"><input type="checkbox" id="wrap-names" /> <span>Wrap long names<small>Or drag the edge of this panel to make it wider.</small></span></label>
       <div class="row between">
         <button id="btn-newwc" class="btn btn-slate btn-sm">+ New wildcard file</button>
@@ -416,6 +425,17 @@
       <label class="chk"><input type="checkbox" data-opt="colorize" /> <span>Colour-code wildcard results</span></label>
       <label class="chk"><input type="checkbox" data-opt="parentColor" /> <span>Colour by parent<small>Parts called by the same wildcard share its colour. Off = colour by depth.</small></span></label>
       <label class="chk"><input type="checkbox" data-opt="crlf" /> <span>Windows line endings (CRLF) in saved files</span></label>
+    </div>
+
+    <div class="card" id="card-presets">
+      <h3>Model presets</h3>
+      <select id="pre-sel"></select>
+      <div class="row"><button id="pre-save" class="btn btn-indigo btn-sm" title="Overwrite the selected preset with the current model, prefix, suffix and negative">Save</button>
+        <button id="pre-new" class="btn btn-slate btn-sm">Save as new…</button>
+        <button id="pre-del" class="btn btn-slate btn-sm">Delete</button></div>
+      <label class="chk"><input type="checkbox" id="pre-auto" /> <span>Apply automatically when I pick this preset’s model<small>One per model. Choosing the model in “Model and length” loads its preset.</small></span></label>
+      <div class="row"><button id="pre-export" class="btn btn-slate btn-sm">Export…</button><button id="pre-import" class="btn btn-slate btn-sm">Import…</button></div>
+      <div id="pre-info" class="note"></div>
     </div>
 
     <div class="card" id="card-model">
@@ -1196,51 +1216,95 @@ function afterIndexChange() { clearCounts(); highlight(); refreshSample(); sched
 
 /* ---------- file list + inspector ---------- */
 let listLimit = 1000;                                   // rows drawn at once; huge folders stay fast
+const tree = { on: lsGet('wps.tree', true) !== false, open: new Set() };
+const dirsOf = p => { const a = p.split('/'); a.pop(); return a; };
+function makeRow(k, depth) {
+  const e = S.index.get(k);
+  const row = document.createElement('div'); row.className = 'wc-row' + (k === S.selected ? ' sel' : ''); row.draggable = true; row.dataset.key = k; row.title = `__${k}__   (${e.path})`;
+  if (depth) row.style.marginLeft = (depth * 0.9) + 'rem';
+  const info = document.createElement('div'); info.style.minWidth = 0;
+  const tag = document.createElement('div'); tag.className = 'tag truncate'; tag.textContent = `__${k}__`;
+  const sub = document.createElement('div'); sub.className = 'sub truncate'; sub.textContent = e.path;
+  info.append(tag, sub);
+  const cnt = document.createElement('span'); cnt.className = 'cnt'; cnt.textContent = e.lines ? e.lines.length.toLocaleString() : '';
+  rowCounts.set(k, cnt);
+  const add = document.createElement('button'); add.className = 'btn-icon'; add.title = 'Insert at cursor'; add.textContent = '+';
+  add.onclick = ev => { ev.stopPropagation(); insertTag(k); };
+  const right = document.createElement('div'); right.className = 'row'; right.append(cnt, add);
+  row.append(info, right);
+  row.addEventListener('dragstart', ev => { ev.dataTransfer.setData('text/plain', `__${k}__`); ev.dataTransfer.effectAllowed = 'copy'; });
+  row.addEventListener('click', () => selectEntry(k));
+  row.addEventListener('dblclick', () => insertTag(k));
+  return row;
+}
 function renderList(keepLimit) {
   if (keepLimit !== true) listLimit = 1000;
-  const list = $('wc-list'); list.replaceChildren(); rowCounts.clear();
+  const list = $('wc-list'), st = keepLimit === true ? list.scrollTop : 0; list.replaceChildren(); rowCounts.clear();
   const q = $('filter').value.trim().toLowerCase().replace(/\\/g, '/');
   const keys = []; for (const k of S.index.keys()) if (!q || k.includes(q)) keys.push(k);
   keys.sort();
   $('file-count').textContent = q ? `${keys.length.toLocaleString()} of ${S.index.size.toLocaleString()} files` : `${S.index.size.toLocaleString()} file${S.index.size === 1 ? '' : 's'}`;
   $('empty-state').classList.toggle('hidden', S.index.size > 0);
-  let shown = keys.slice(0, listLimit);
-  if (S.selected && keys.length > listLimit && !shown.includes(S.selected) && keys.includes(S.selected)) shown.push(S.selected);
-  const frag = document.createDocumentFragment();
-  for (const k of shown) {
-    const e = S.index.get(k);
-    const row = document.createElement('div'); row.className = 'wc-row' + (k === S.selected ? ' sel' : ''); row.draggable = true; row.dataset.key = k; row.title = `__${k}__   (${e.path})`;
-    const info = document.createElement('div'); info.style.minWidth = 0;
-    const tag = document.createElement('div'); tag.className = 'tag truncate'; tag.textContent = `__${k}__`;
-    const sub = document.createElement('div'); sub.className = 'sub truncate'; sub.textContent = e.path;
-    info.append(tag, sub);
-    const cnt = document.createElement('span'); cnt.className = 'cnt'; cnt.textContent = e.lines ? e.lines.length.toLocaleString() : '';
-    rowCounts.set(k, cnt);
-    const add = document.createElement('button'); add.className = 'btn-icon'; add.title = 'Insert at cursor'; add.textContent = '+';
-    add.onclick = ev => { ev.stopPropagation(); insertTag(k); };
-    const right = document.createElement('div'); right.className = 'row'; right.append(cnt, add);
-    row.append(info, right);
-    row.addEventListener('dragstart', ev => { ev.dataTransfer.setData('text/plain', `__${k}__`); ev.dataTransfer.effectAllowed = 'copy'; });
-    row.addEventListener('click', () => selectEntry(k));
-    row.addEventListener('dblclick', () => insertTag(k));
-    frag.appendChild(row);
+  const frag = document.createDocumentFragment(); let budget = listLimit, cut = false;
+  const hasDirs = tree.on && keys.some(k => S.index.get(k).path.includes('/'));
+  $('btn-tree').textContent = 'Folders: ' + (tree.on ? 'on' : 'off');
+  $('btn-fold-all').disabled = $('btn-unfold-all').disabled = !hasDirs;
+  if (!hasDirs) {
+    const shown = keys.slice(0, listLimit);
+    if (S.selected && keys.length > listLimit && !shown.includes(S.selected) && keys.includes(S.selected)) shown.push(S.selected);
+    for (const k of shown) frag.appendChild(makeRow(k, 0));
+    cut = keys.length > listLimit;
+  } else {
+    const root = { dirs: new Map(), files: [], n: 0 };
+    for (const k of keys) {
+      let node = root; node.n++;
+      for (const d of dirsOf(S.index.get(k).path)) { if (!node.dirs.has(d)) node.dirs.set(d, { dirs: new Map(), files: [], n: 0 }); node = node.dirs.get(d); node.n++; }
+      node.files.push(k);
+    }
+    const emit = (node, prefix, depth) => {
+      for (const d of [...node.dirs.keys()].sort()) {
+        if (budget <= 0) { cut = true; return; }
+        const child = node.dirs.get(d), path = prefix + d + '/', open = !!q || tree.open.has(path);
+        const fr = document.createElement('div'); fr.className = 'wc-folder'; fr.style.marginLeft = (depth * 0.9) + 'rem'; fr.title = path;
+        fr.append(mkEl('span', 'arr', open ? '▾' : '▸'), mkEl('span', 'truncate', d), mkEl('span', 'n', child.n.toLocaleString()));
+        fr.onclick = () => { if (tree.open.has(path)) tree.open.delete(path); else tree.open.add(path); renderList(true); };
+        frag.appendChild(fr); budget--;
+        if (open) emit(child, path, depth + 1);
+        if (cut) return;
+      }
+      for (const k of node.files) { if (budget <= 0) { cut = true; return; } frag.appendChild(makeRow(k, depth)); budget--; }
+    };
+    emit(root, '', 0);
   }
   list.appendChild(frag);
-  if (keys.length > listLimit) {
+  if (cut) {
     const more = document.createElement('div'); more.className = 'note'; more.style.cssText = 'padding:.5rem;text-align:center';
-    more.append(`Showing ${listLimit.toLocaleString()} of ${keys.length.toLocaleString()}. Type in the filter to narrow, or `);
+    more.append(`Showing the first ${listLimit.toLocaleString()} rows. Type in the filter to narrow, or `);
     const btn = document.createElement('button'); btn.className = 'btn btn-sm btn-slate'; btn.textContent = 'show 1,000 more';
     btn.onclick = () => { listLimit += 1000; renderList(true); };
     more.append(btn); list.appendChild(more);
   }
+  if (st) list.scrollTop = st;
 }
+function revealKey(key) {                       // make sure a file's row exists (opens its folders in folder view)
+  if (rowCounts.has(key)) return;
+  const e = S.index.get(key); if (!e) return;
+  let p = ''; for (const d of dirsOf(e.path)) { p += d + '/'; tree.open.add(p); }
+  const q = $('filter').value.trim().toLowerCase();
+  if (q && !key.includes(q)) $('filter').value = '';
+  renderList(true);
+  const row = [...document.querySelectorAll('.wc-row')].find(r => r.dataset.key === key); if (row) row.scrollIntoView({ block: 'nearest' });
+}
+$('btn-tree').onclick = () => { tree.on = !tree.on; lsSet('wps.tree', tree.on); renderList(); };
+$('btn-fold-all').onclick = () => { tree.open.clear(); renderList(); };
+$('btn-unfold-all').onclick = () => { for (const e of S.index.values()) { let p = ''; for (const d of dirsOf(e.path)) { p += d + '/'; tree.open.add(p); } } renderList(); };
 onEntryLoaded = e => { const c = rowCounts.get(e.key); if (c) c.textContent = e.lines.length.toLocaleString(); };
 function insertTag(key) { insertAtCursor(`__${key}__`); }
 function insertAtCursor(text) { const s = ed.selectionStart, e = ed.selectionEnd; ed.setRangeText(text, s, e, 'end'); ed.focus(); onEditorInput(); }
 
 async function selectEntry(key) {
   const e = S.index.get(key); if (!e) return;
-  S.selected = key;
+  S.selected = key; revealKey(key);
   document.querySelectorAll('.wc-row').forEach(r => r.classList.toggle('sel', r.dataset.key === key));
   $('inspector').classList.remove('hidden'); $('insp-title').textContent = e.path; $('insp-text').value = 'Loading…';
   await loadEntry(e);
@@ -2045,7 +2109,11 @@ function renderProfInfo() {
   const w = { yes: 'weights work', no: 'ignores (word:1.2) weights', unsure: 'weight support unclear' }[p.weights], n = { yes: 'uses negative prompts', no: 'ignores negative prompts', weak: 'negative prompts barely work', unsure: 'negative support unclear' }[p.neg];
   box.textContent = `${p.family} · ${p.style === 'tags' ? 'tag style' : 'sentence style'} · ${w} · ${n} · ${CONF_LABEL[p.conf] || ''}. ${p.note || ''}`;
 }
-$('prof-sel').addEventListener('change', () => { ext.profile = $('prof-sel').value; saveExt(); renderProfInfo(); updateGauge(); });
+$('prof-sel').addEventListener('change', () => {
+  ext.profile = $('prof-sel').value; saveExt(); renderProfInfo(); updateGauge();
+  const p = presets.list.find(x => x.auto && x.profile === ext.profile);
+  if (p) { applyPreset(p); toast(`Loaded preset “${p.name}”`, 'info'); }
+});
 $('btn-prof-apply').onclick = () => {
   const p = curProfile(); if (!p) return;
   opts.onePara = true; opts.tidy = p.style === 'tags'; ext.stripW = p.weights === 'no'; saveOpts(); saveExt(); syncOptInputs(); syncExtInputs(); refreshSample();
@@ -2188,6 +2256,52 @@ function applyShape(line, af) {
   return finalize([af.pre, t, af.suf].filter(Boolean).join(' '));
 }
 async function shapeFinal(line, seed) { return applyShape(line, await affixes(seed)); }
+/* ---------- model presets (v3.3): model + frontend + prefix + suffix + negative + weight/paragraph options ---------- */
+const presets = { list: lsGet('wps.presets', []), cur: lsGet('wps.presetCur', null) };
+const savePresets = () => { lsSet('wps.presets', presets.list); lsSet('wps.presetCur', presets.cur); };
+const presetSnap = () => ({ profile: ext.profile, frontend: ext.frontend, prefix: ext.prefix, suffix: ext.suffix, negative: ext.negative, stripW: !!ext.stripW, onePara: !!opts.onePara, tidy: !!opts.tidy });
+const profName = id => { const p = allProfiles().find(x => x.id === id); return p ? p.name : '(model no longer in the list)'; };
+function renderPresets() {
+  const sel = $('pre-sel'); sel.replaceChildren();
+  const none = document.createElement('option'); none.value = ''; none.textContent = presets.list.length ? '— no preset —' : '— no presets yet —'; sel.appendChild(none);
+  for (const p of presets.list) { const o = document.createElement('option'); o.value = p.id; o.textContent = p.name; sel.appendChild(o); }
+  if (!presets.list.some(p => p.id === presets.cur)) presets.cur = null;
+  sel.value = presets.cur || '';
+  const p = presets.list.find(x => x.id === presets.cur);
+  $('pre-auto').checked = !!(p && p.auto); $('pre-auto').disabled = !p; $('pre-save').disabled = $('pre-del').disabled = !p;
+  $('pre-info').textContent = p ? `${profName(p.profile)}${p.prefix ? ' · prefix' : ''}${p.suffix ? ' · suffix' : ''}${p.negative ? ' · negative' : ''}${p.auto ? ' · loads automatically' : ''}` : 'Save the current model, frontend, prefix, suffix, negative prompt and weight options as a named preset.';
+}
+function applyPreset(p) {
+  const keepProf = allProfiles().some(x => x.id === p.profile) ? p.profile : ext.profile;
+  Object.assign(ext, { profile: keepProf, frontend: p.frontend || ext.frontend, prefix: p.prefix || '', suffix: p.suffix || '', negative: p.negative || '', stripW: !!p.stripW });
+  opts.onePara = !!p.onePara; opts.tidy = !!p.tidy; presets.cur = p.id;
+  saveOpts(); saveExt(); savePresets(); syncOptInputs(); syncExtInputs(); renderProfSelect(); renderPresets(); refreshSample();
+}
+$('pre-sel').addEventListener('change', () => { const p = presets.list.find(x => x.id === $('pre-sel').value); if (p) applyPreset(p); else { presets.cur = null; savePresets(); renderPresets(); } });
+$('pre-save').onclick = () => { const p = presets.list.find(x => x.id === presets.cur); if (!p) return; Object.assign(p, presetSnap()); savePresets(); renderPresets(); toast(`Saved preset “${p.name}”`, 'success'); };
+$('pre-new').onclick = async () => {
+  const name = await askText('Name this preset', profName(ext.profile)); if (!name) return;
+  const p = Object.assign({ id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name, auto: false }, presetSnap());
+  presets.list.push(p); presets.cur = p.id; savePresets(); renderPresets(); toast(`Saved preset “${name}”`, 'success');
+};
+$('pre-del').onclick = () => { const i = presets.list.findIndex(x => x.id === presets.cur); if (i < 0) return; const [p] = presets.list.splice(i, 1); presets.cur = null; savePresets(); renderPresets(); toast(`Deleted preset “${p.name}”`, 'info'); };
+$('pre-auto').addEventListener('change', () => {
+  const p = presets.list.find(x => x.id === presets.cur); if (!p) return;
+  p.auto = $('pre-auto').checked; if (p.auto) presets.list.forEach(x => { if (x !== p && x.profile === p.profile) x.auto = false; });
+  savePresets(); renderPresets();
+});
+$('pre-export').onclick = () => { if (!presets.list.length) { toast('No presets to export yet.', 'info'); return; } downloadBlob('guyanonymous_prompt_studio_presets.json', new Blob([JSON.stringify({ app: "Guyanonymous' Prompt Studio", presets: presets.list }, null, 2)], { type: 'application/json' })); };
+$('pre-import').onclick = () => {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json';
+  inp.onchange = async () => {
+    try {
+      const j = JSON.parse(await inp.files[0].text()); const list = Array.isArray(j) ? j : j.presets; if (!Array.isArray(list)) throw new Error('no presets found');
+      let n = 0; for (const x of list) { if (!x || typeof x.name !== 'string') continue; const p = Object.assign({}, x, { id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5) + n, auto: false }); presets.list.push(p); n++; }
+      savePresets(); renderPresets(); toast(`Imported ${n} preset${n === 1 ? '' : 's'} (automatic loading is off for imported ones)`, 'success');
+    } catch (e) { toast('Could not import presets: ' + e.message, 'error'); }
+  };
+  inp.click();
+};
 function syncExtInputs() {
   document.querySelectorAll('[data-ext]').forEach(el => { const k = el.dataset.ext; if (el.type === 'checkbox') el.checked = !!ext[k]; else el.value = ext[k] == null ? '' : ext[k]; });
   const sel = $('prof-sel'); if (sel.options.length) { const p = curProfile(); if (p) sel.value = p.id; }
@@ -2226,7 +2340,7 @@ function serializeRecords(part, fmt, startN) {
   if (fmt === 'csv') return '﻿' + ['n,seed,prompt,negative,picks'].concat(part.map((r, i) => [startN + i, r.seed, r.prompt, r.negative, r.picks.map(p => p.name + '=' + p.value).join('; ')].map(csvCell).join(','))).join(eol()) + eol();
   if (fmt === 'json') {
     const p = curProfile();
-    return JSON.stringify({ app: "Guyanonymous' Prompt Studio v3.2", template: S.tpl.name, model: p ? p.name : null, created: new Date().toISOString(), count: part.length,
+    return JSON.stringify({ app: "Guyanonymous' Prompt Studio v3.3", template: S.tpl.name, model: p ? p.name : null, created: new Date().toISOString(), count: part.length,
       items: part.map((r, i) => ({ n: startN + i, seed: r.seed, prompt: r.prompt, negative: r.negative || undefined, picks: Object.fromEntries(r.picks.map(x => [x.name, x.value])) })) }, null, 2) + eol();
   }
   return part.map(r => (opts.batchSeedPrefix ? `${r.seed} | ` : '') + r.prompt).join(eol()) + eol();
@@ -2364,8 +2478,11 @@ function dedupeText(text) {
 }
 $('insp-dedupe') && ($('insp-dedupe').onclick = () => { const r = dedupeText($('insp-text').value); $('insp-text').value = r.text; updateInspectorMeta(); toast(r.removed ? `Removed ${r.removed} duplicate line${r.removed === 1 ? '' : 's'}. Press Save file to keep the change.` : 'No duplicate lines.', r.removed ? 'success' : 'info'); });
 async function loadAllEntries() {
-  const ents = [...S.index.values()]; let i = 0, bar = $('lib-prog');
-  for (const e of ents) { await loadEntry(e); if (++i % 25 === 0) { bar.textContent = `Reading files… ${i} / ${ents.length}`; await tick(); } }
+  const ents = [...S.index.values()], bar = $('lib-prog'); let i = 0;
+  for (let st = 0; st < ents.length; st += 16) {
+    await Promise.all(ents.slice(st, st + 16).map(loadEntry)); i = Math.min(ents.length, st + 16);
+    bar.textContent = `Reading files… ${i.toLocaleString()} / ${ents.length.toLocaleString()}`; await tick();
+  }
   bar.textContent = ''; return ents;
 }
 function refTargets(e) {                      // wildcard names referenced by the lines of e (raw names)
@@ -2385,15 +2502,28 @@ function renderLibSearch(box) {
   const rx = document.createElement('label'); rx.className = 'chk'; rx.innerHTML = '<input type="checkbox" /> <span>Regular expression</span>';
   const go = mkBtn('Search', 'btn-indigo', run); q.append(inp, rx, go); const res = mkEl('div', 'tbl'); box.append(q, res); inp.focus();
   inp.addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+  let runId = 0;
   async function run() {
-    const term = inp.value; res.replaceChildren(); if (!term) return;
-    let test; try { if (rx.querySelector('input').checked) { const r = new RegExp(term, 'i'); test = l => r.test(l); } else { const t = term.toLowerCase(); test = l => l.toLowerCase().includes(t); } } catch (e) { res.appendChild(mkEl('div', 'trow', 'Invalid expression: ' + e.message)); return; }
-    const ents = await loadAllEntries(); let n = 0, files = new Set();
-    outer: for (const e of ents) for (let i = 0; i < e.lines.length; i++) if (test(e.lines[i])) {
-      const r = mkEl('div', 'trow'); r.append(mkEl('span', 't', clipTxt(e.lines[i], 300)), mkEl('span', 'm', `${e.path.replace(/\.txt$/i, '')} · line ${i + 1}`), fileLink(e.key, 'Open'));
-      res.appendChild(r); files.add(e.key); if (++n >= 500) break outer;
+    const my = ++runId, term = inp.value; res.replaceChildren(); $('lib-prog').textContent = ''; if (!term) return;
+    let test; try { if (rx.querySelector('input').checked) { const r = new RegExp(term, 'i'); test = l => r.test(l); } else { const t = term.toLowerCase(); test = l => l.toLowerCase().includes(t); } } catch (e) { res.appendChild(mkEl('div', 'trow', 'Invalid regular expression: ' + e.message)); return; }
+    const ents = [...S.index.values()], big = ents.length > 20000, bar = $('lib-prog');
+    const getLines = async e => { if (e.lines) return e.lines; if (!big) { await loadEntry(e); return e.lines; } try { return parseLines(await readEntryText(e)).lines; } catch { return []; } };   // huge libraries: read, search, discard (keeps memory flat)
+    let n = 0, done = 0; const files = new Set();
+    for (let st = 0; st < ents.length && n < 500; st += 24) {
+      if (my !== runId || $('m-lib').classList.contains('hidden')) { bar.textContent = ''; return; }
+      const chunk = ents.slice(st, st + 24), all = await Promise.all(chunk.map(getLines));
+      for (let c = 0; c < chunk.length && n < 500; c++) {
+        const e = chunk[c], ls = all[c];
+        for (let i = 0; i < ls.length && n < 500; i++) if (test(ls[i])) {
+          const r = mkEl('div', 'trow'); r.append(mkEl('span', 't', clipTxt(ls[i], 300)), mkEl('span', 'm', `${e.path.replace(/\.txt$/i, '')} · line ${i + 1}`), fileLink(e.key, 'Open'));
+          res.appendChild(r); files.add(e.key); n++;
+        }
+      }
+      done = st + chunk.length; bar.textContent = `Searching… ${done.toLocaleString()} / ${ents.length.toLocaleString()} files · ${n} match${n === 1 ? '' : 'es'}`; await tick();
     }
-    res.prepend(mkEl('div', 'trow', n ? `${n >= 500 ? 'First 500 matches' : n + ' match' + (n === 1 ? '' : 'es')} in ${files.size} file${files.size === 1 ? '' : 's'}` : 'No matches.'));
+    bar.textContent = '';
+    const stopped = n >= 500 && done < ents.length;
+    res.prepend(mkEl('div', 'trow', n ? `${n >= 500 ? 'First 500 matches' : n + ' match' + (n === 1 ? '' : 'es')} in ${files.size} file${files.size === 1 ? '' : 's'}${stopped ? ` (stopped after ${done.toLocaleString()} of ${ents.length.toLocaleString()} files; refine the search to see others)` : ''}` : 'No matches.'));
   }
 }
 async function renderLibHealth(box) {
@@ -2626,6 +2756,7 @@ async function extInit(draft) {
   syncExtInputs(); updateSweepList();
 }
 
+renderPresets();
 /* ---------- collapsible right-hand cards (v3) ---------- */
 const cardState = lsGet('wps.cards', {});
 const cardsEls = [...document.querySelectorAll('.right .card')];

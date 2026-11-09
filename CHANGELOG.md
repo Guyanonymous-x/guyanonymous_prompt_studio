@@ -1,6 +1,6 @@
 # Guyanonymous' Prompt Studio: Changelog
 
-From v1 to v3.2 (earlier versions were called Offline Wildcard Prompt Studio). Newest changes are at the bottom of each section's list; versions run oldest to newest.
+From v1 to v3.3 (earlier versions were called Offline Wildcard Prompt Studio). Newest changes are at the bottom of each section's list; versions run oldest to newest.
 
 ---
 
@@ -156,6 +156,15 @@ The first full rewrite of the original Gemini-generated prototype, keeping its l
 **Changed**
 - Wildcard list shows 1,000 files at a time with "show 1,000 more"; filter is debounced. 90,000 files now load in roughly 0.15 s instead of about 4.6 s.
 - Auto-rescan on focus compares file names only for folders over 5,000 files.
+
+## v3.3: folder view, faster search, presets
+
+**Added**
+- Folder view for the wildcard list, with file counts, Collapse all, Expand all and a Folders on/off switch.
+- Model presets card: save, overwrite, delete, auto-load per model, export and import.
+
+**Changed**
+- Library search reads files in parallel, shows progress, stops at 500 matches, and does not keep files in memory for libraries over 20,000 files. Health check reads in parallel.
 
 ---
 
