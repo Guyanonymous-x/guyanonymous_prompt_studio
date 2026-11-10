@@ -5,7 +5,7 @@
 <!-- Blocks every network request: the page cannot upload or download anything. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:; base-uri 'none'; form-action 'none'" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Guyanonymous' Prompt Studio v3.3</title>
+<title>Guyanonymous' Prompt Studio v3.4</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -205,6 +205,9 @@
   .vchip .val { color: #cbd5e1; min-width: 0; max-width: 22rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .vchip button { border: 0; background: transparent; color: var(--muted); cursor: pointer; border-radius: 4px; padding: 0 .3rem; font-size: .75rem; line-height: 1.5; }
   .vchip button:hover { background: rgba(255,255,255,.14); color: #fff; }
+  .fixed-strip .fs-head { font: 600 .6875rem/1.9 var(--sans); color: var(--muted); white-space: nowrap; }
+  .fixed-strip .vchip.on { border-color: var(--emerald); }
+  .fixed-strip select { max-width: 18rem; min-width: 6rem; background: #0b1224; color: #e2e8f0; border: 1px solid var(--line); border-radius: 4px; font: .6875rem/1.4 var(--mono); padding: 0 .2rem; }
   .seg:not(.part).locked::before { content: '🔒'; font-size: .7em; margin-right: .15em; }
   .seg:not(.part).forced::before { content: '📌'; font-size: .7em; margin-right: .15em; }
   .seg:not(.part).locked.forced::before { content: '🔒📌'; }
@@ -279,7 +282,7 @@
   <div class="brand">
     <div class="brand-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
     <div>
-      <h1>Guyanonymous' Prompt Studio <span class="badge badge-indigo">v3.3</span> <span class="badge badge-active">Offline</span></h1>
+      <h1>Guyanonymous' Prompt Studio <span class="badge badge-indigo">v3.4</span> <span class="badge badge-active">Offline</span></h1>
       <p>Nothing is uploaded. The page can only read and write folders you choose.</p>
     </div>
   </div>
@@ -396,6 +399,7 @@
         <button id="btn-unlock-all" class="btn btn-slate btn-sm hidden" title="Release every lock and chosen line">Unlock all</button>
         <span>Arrow = open/close · click = re-roll · right-click = lock or choose a line</span>
       </div>
+      <div id="fixed-strip" class="vars-strip fixed-strip hidden"></div>
       <div id="vars-strip" class="vars-strip hidden"></div>
       <div id="sample-view"></div>
       <div id="split-fin" class="splitter-h in" role="separator" aria-orientation="horizontal" tabindex="0" title="Drag to resize the sample and the saved-text areas (double-click to reset)"></div>
@@ -462,6 +466,7 @@
       <h3>Batch of random prompts (up to 1,000)</h3>
       <div class="field"><label for="batch-count">How many</label><input type="number" id="batch-count" data-opt="batchCount" min="1" max="1000" /></div>
       <label class="chk"><input type="checkbox" data-opt="batchUnique" /> <span>Skip duplicates</span></label>
+      <label class="chk"><input type="checkbox" data-opt="batchKeepChosen" /> <span>Keep my chosen lines<small>Lines you picked (📌) stay the same in every prompt. Everything else is still random.</small></span></label>
       <label class="chk"><input type="checkbox" data-opt="batchRepro" /> <span>Reproducible<small>Derive each prompt’s seed from the Seed box. Otherwise every prompt gets a fresh random seed.</small></span></label>
       <label class="chk"><input type="checkbox" data-opt="batchSeedPrefix" /> <span>Write each seed before its prompt<small>Format: <span class="mono">seed | prompt</span></small></span></label>
       <div class="field"><label for="ext-fmt">File format</label><select id="ext-fmt" data-ext="fmt"><option value="txt">Text, one prompt per line</option><option value="csv">CSV (seed, prompt, negative, picks)</option><option value="json">JSON (same, structured)</option></select></div>
@@ -601,7 +606,7 @@ const MAX_DEPTH = 30;
 const opts = {
   onePara: true, tidy: false, inline: false, comments: true, subfolders: true,
   liveUpdate: true, colorize: true, parentColor: true, crlf: false, vars: true, weights: false, autoRescan: false,
-  batchCount: 50, batchUnique: true, batchRepro: false, batchSeedPrefix: false,
+  batchCount: 50, batchUnique: true, batchKeepChosen: false, batchRepro: false, batchSeedPrefix: false,
   permMulti: false, permDedupe: true, permCap: 100000
 };
 const S = {
@@ -834,7 +839,11 @@ async function evalNodes(nodes, path, ctx, depth, stack) {
       await loadEntry(e);
       if (!e.act.length) { ctx.issues.empty.add(e.key); out.push({ k: 'miss', v: `[Empty: __${n.name}__]` }); continue; }
       const seed = ctx.overrides.has(key) ? ctx.overrides.get(key) : ctx.seed;
-      const fk = ctx.forced ? ctx.forced.get(key) : undefined, isForced = fk != null && fk >= 0 && fk < e.lines.length;
+      let fk = ctx.forced ? ctx.forced.get(key) : undefined;
+      if (fk && typeof fk === 'object') {                 // chosen line remembered by its text, so it still matches if lines move in the file
+        const j = fk.t != null ? (e.lines[fk.i] === fk.t ? fk.i : e.lines.indexOf(fk.t)) : fk.i; fk = j;
+      }
+      const isForced = fk != null && fk >= 0 && fk < e.lines.length;
       const idx = isForced ? fk : pickLine(e, seed, key);
       const kids = await evalNodes(getAst(e, idx), `${key}[${idx}]`, withSeed(ctx, seed), depth + 1, stack.concat(e.key));
       out.push({ k: 'wc', name: n.name, entry: e, idx, key, kids, seed, forced: isForced });
@@ -1632,11 +1641,11 @@ function drawSample() {
   view.replaceChildren(); renderTreeInto(view, S.tree, 0);
   view.scrollTop = top;
   view.classList.remove('stale'); view.classList.toggle('para', opts.onePara); view.classList.toggle('plain', !opts.colorize);
-  renderVarStrip(); $('btn-unlock-all').classList.toggle('hidden', !(S.locks.size || S.forced.size));
+  renderFixedStrip(); renderVarStrip(); $('btn-unlock-all').classList.toggle('hidden', !(S.locks.size || S.forced.size));
 }
 async function refreshSample() {
   const tok = ++evalTok, text = ed.value, view = $('sample-view');
-  if (!text.trim()) { view.replaceChildren(document.createTextNode('Your sample will appear here.')); S.tree = null; S.final = ''; updateFinal(); renderTrace([]); S.issuesSample = null; renderIssues(); return; }
+  if (!text.trim()) { view.replaceChildren(document.createTextNode('Your sample will appear here.')); $('fixed-strip').classList.add('hidden'); S.tree = null; S.final = ''; updateFinal(); renderTrace([]); S.issuesSample = null; renderIssues(); return; }
   const issues = newIssues();
   let tree; try { tree = await evaluate(text, S.seed, S.overrides, issues, S.forced); } catch (e) { toast('Evaluation error: ' + e.message, 'error'); return; }
   if (tok !== evalTok) return;
@@ -1732,7 +1741,7 @@ function openLinePicker(n, x, y) {
     for (const i of hits.slice(0, shown)) {
       const row = mkEl('div', 'peek-row' + (i === n.idx ? ' cur' : '')), t = mkEl('div', 't'); t.appendChild(lineNodes(e.lines[i]));
       if (e.weighted) t.appendChild(mkEl('span', 'wt', `×${e.w[i]}`));
-      const b = mkEl('button', 'btn btn-indigo btn-sm', i === n.idx ? 'Current' : 'Use'); b.onclick = () => { S.forced.set(n.key, i); closeFloaters(); refreshSample(); };
+      const b = mkEl('button', 'btn btn-indigo btn-sm', i === n.idx ? 'Current' : 'Use'); b.onclick = () => { S.forced.set(n.key, { i, t: e.lines[i] }); closeFloaters(); refreshSample(); };
       row.append(t, b); list.appendChild(row);
     }
     if (hits.length > shown) { const more = mkEl('button', 'btn btn-slate btn-sm', `Show more (${(hits.length - shown).toLocaleString()} not shown)`); more.onclick = () => { shown += 500; draw(); }; list.appendChild(more); }
@@ -1764,6 +1773,50 @@ function renderVarStrip() {
       b('↻', 'Re-roll this value everywhere it is used', () => rerollNode(node)),
       b(S.locks.has(key) ? '🔒' : '🔓', S.locks.has(key) ? 'Locked. Click to unlock' : 'Lock this value so Roll new sample keeps it', () => toggleLock(node)));
     if (tgt) chip.appendChild(b(tgt.forced ? '📌' : '≡', 'Choose the line for this value', ev => { const r = ev.target.getBoundingClientRect(); openLinePicker(tgt, r.left, r.bottom + 6); }));
+    box.appendChild(chip);
+  }
+}
+/* Fixed lines strip: a drop-down for each wildcard written in the template. "Random" or a chosen line that stays put.
+   A wildcard that sets a remembered value (__file$name__ or ${name=__file__}) changes every ${name} that reuses it. */
+function fixedTargets() {
+  const out = [], seen = new Set(), counts = {};
+  for (const n of S.tree || []) {
+    let tgt = null, label = '';
+    if (n.k === 'wc') { tgt = n; counts[n.name] = (counts[n.name] || 0) + 1; label = `__${n.name}__` + (counts[n.name] > 1 ? ` (${counts[n.name]})` : ''); }
+    else if (n.k === 'use' && n.via) { tgt = pickTarget(n); label = `__${n.via}__ → $${n.name}`; }
+    else if (n.k === 'def') { tgt = pickTarget({ k: 'use', kids: n.kids }); label = `$${n.name}`; }
+    if (!tgt || seen.has(tgt.key)) continue;          // a plain ${name} reuse follows the first one, so it gets no drop-down of its own
+    seen.add(tgt.key); out.push({ tgt, label });
+  }
+  return out;
+}
+function renderFixedStrip() {
+  const box = $('fixed-strip'); box.replaceChildren();
+  const items = fixedTargets();
+  if (!items.length) { box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+  box.appendChild(mkEl('span', 'fs-head', 'Fixed lines:'));
+  for (const { tgt, label } of items) {
+    const e = tgt.entry, chip = mkEl('div', 'vchip' + (tgt.forced ? ' on' : '')); chip.style.setProperty('--h', HUES[0]);
+    const sel = document.createElement('select'); sel.title = `${e.path} · ${e.lines.length.toLocaleString()} lines. Pick a line to keep it in place, or Random.`;
+    const opt = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; return o; };
+    sel.appendChild(opt('', tgt.forced ? '🎲 Random' : `🎲 Random (now: ${e.lines[tgt.idx]})`));
+    if (tgt.forced) sel.appendChild(opt(String(tgt.idx), `📌 ${tgt.idx + 1}. ${e.lines[tgt.idx]}`));
+    sel.value = tgt.forced ? String(tgt.idx) : '';
+    let filled = false;
+    const fill = () => {                                // the full list is only built when the drop-down is opened
+      if (filled) return; filled = true; const keep = sel.value, frag = document.createDocumentFragment();
+      e.lines.forEach((l, i) => { if (!(tgt.forced && i === tgt.idx)) frag.appendChild(opt(String(i), `${i + 1}. ${l}`)); });
+      sel.appendChild(frag); sel.value = keep;
+    };
+    sel.addEventListener('mousedown', fill); sel.addEventListener('focus', fill); sel.addEventListener('keydown', fill);
+    sel.addEventListener('change', () => {
+      if (sel.value === '') S.forced.delete(tgt.key); else { const i = +sel.value; S.forced.set(tgt.key, { i, t: e.lines[i] }); }
+      refreshSample();
+    });
+    const find = mkEl('button', '', '≡'); find.title = 'Search the lines';
+    find.onclick = ev => { const r = ev.target.getBoundingClientRect(); openLinePicker(tgt, r.left, r.bottom + 6); };
+    chip.append(mkEl('span', 'nm', label), sel, find);
     box.appendChild(chip);
   }
 }
@@ -2340,7 +2393,7 @@ function serializeRecords(part, fmt, startN) {
   if (fmt === 'csv') return '﻿' + ['n,seed,prompt,negative,picks'].concat(part.map((r, i) => [startN + i, r.seed, r.prompt, r.negative, r.picks.map(p => p.name + '=' + p.value).join('; ')].map(csvCell).join(','))).join(eol()) + eol();
   if (fmt === 'json') {
     const p = curProfile();
-    return JSON.stringify({ app: "Guyanonymous' Prompt Studio v3.3", template: S.tpl.name, model: p ? p.name : null, created: new Date().toISOString(), count: part.length,
+    return JSON.stringify({ app: "Guyanonymous' Prompt Studio v3.4", template: S.tpl.name, model: p ? p.name : null, created: new Date().toISOString(), count: part.length,
       items: part.map((r, i) => ({ n: startN + i, seed: r.seed, prompt: r.prompt, negative: r.negative || undefined, picks: Object.fromEntries(r.picks.map(x => [x.name, x.value])) })) }, null, 2) + eol();
   }
   return part.map(r => (opts.batchSeedPrefix ? `${r.seed} | ` : '') + r.prompt).join(eol()) + eol();
@@ -2386,7 +2439,7 @@ $('btn-batch').onclick = () => {
   return runExport({ key: 'batch', btn: 'btn-batch', prog: 'batch', total: count, base: `batch_${tplSlug()}_${count}_${stamp()}`,
     async make(i) {
       for (let attempt = 0; attempt < 30; attempt++) {
-        const seed = opts.batchRepro ? xmur3(`${S.seed}:${i}:${attempt}`) : randomSeed(), r = await buildRecord(i, seed);
+        const seed = opts.batchRepro ? xmur3(`${S.seed}:${i}:${attempt}`) : randomSeed(), r = await buildRecord(i, seed, opts.batchKeepChosen && S.forced.size ? S.forced : null);
         if (!opts.batchUnique || !seen.has(r.prompt)) { seen.add(r.prompt); return r; }
       }
       return null;
@@ -2701,7 +2754,7 @@ $('btn-versions').onclick = () => { versSel = null; captureTab(); renderVersions
 $('vers-now').onclick = async () => { const l = await askText('Name for this version', 'milestone'); if (!l) return; captureTab(); const t = curTab(); const a = vers[t.id] || []; if (a[0] && a[0].text === t.text) { a[0].label = l; a[0].pin = true; kv.set('vers', vers); } else snapshotVersion(t, l); renderVersions(); };
 
 /* ---------- projects ---------- */
-const PROJ_OPTS = ['onePara', 'tidy', 'inline', 'vars', 'weights', 'comments', 'parentColor', 'crlf', 'batchCount', 'batchUnique', 'batchRepro', 'batchSeedPrefix', 'permMulti', 'permDedupe', 'permCap'];
+const PROJ_OPTS = ['onePara', 'tidy', 'inline', 'vars', 'weights', 'comments', 'parentColor', 'crlf', 'batchCount', 'batchUnique', 'batchKeepChosen', 'batchRepro', 'batchSeedPrefix', 'permMulti', 'permDedupe', 'permCap'];
 const PROJ_EXT = ['stripW', 'fmt', 'split', 'negFile', 'frontend'];
 let projs = {};
 function projSnapshot() {

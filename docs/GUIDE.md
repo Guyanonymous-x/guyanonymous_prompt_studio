@@ -1,4 +1,4 @@
-# Guyanonymous' Prompt Studio v3.3: User Guide
+# Guyanonymous' Prompt Studio v3.4: User Guide
 
 A single HTML file for building image-generation prompts out of wildcard text files. It runs in your browser, works offline and never uploads anything.
 
@@ -57,6 +57,7 @@ Select any text or tags in the editor and press **Remember…** and the app writ
 - **Coloured parts** are filled-in wildcards. Click one to re-roll only that part.
 - **Small arrow** on a part opens it to show the wildcards inside it (for example `__body__` opens into `__head__`, `__torso__`, `__limbs__`). **Expand all**, **Collapse all** and **Levels** control it in bulk. Parts called by the same wildcard share a colour.
 - **Right-click** a part for: re-roll, **lock** (Roll new sample keeps it), **choose a line** (pick the exact line from a filterable list), copy its text.
+- **Fixed lines strip** (above the sample) has a drop-down for each wildcard written in the template. Leave it on **🎲 Random**, or pick a line to pin it (📌) so Roll new sample keeps it. **≡** opens the searchable list. For a remembered value like `__animal$pet__`, the pick also changes every `${pet}`.
 - **Remembered values strip** shows each `${name}` with buttons to re-roll, lock or choose its line.
 - **Unlock all** releases every lock and chosen line.
 - **Exactly what gets saved** is the final text after tidy, prefix, suffix and weight handling.
@@ -89,7 +90,7 @@ Set text added to every copy, saved sample and export. They may contain wildcard
 
 ## 7. Exports
 
-**Batch of random prompts** (up to 1,000): a fresh random seed per prompt, optional duplicate skipping, optional reproducible seeds. Choose the format:
+**Batch of random prompts** (up to 1,000): a fresh random seed per prompt, optional duplicate skipping, optional reproducible seeds. Tick **Keep my chosen lines** to keep every pinned line the same in each prompt. Choose the format:
 
 - **Text**: one prompt per line. Optionally a matching `_negative` file with the same number of lines.
 - **CSV**: number, seed, prompt, negative, and the picks that made it.

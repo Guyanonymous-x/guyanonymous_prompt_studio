@@ -1,6 +1,6 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Share post: Guyanonymous' Prompt Studio v3.3</title>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Share post: Guyanonymous' Prompt Studio v3.4</title>
 <style>body{font:16px/1.55 system-ui,sans-serif;max-width:46rem;margin:1.5rem auto;padding:0 1rem;color:#1e293b}code{background:#eef;padding:.05em .3em;border-radius:3px}h1{font-size:1.6rem}h2{font-size:1.15rem;margin-top:1.5rem}</style></head><body>
-<div id="post"><h1>Guyanonymous' Prompt Studio v3.3</h1>
+<div id="post"><h1>Guyanonymous' Prompt Studio v3.4</h1>
 <p><strong>A single-file, fully offline prompt builder for wildcard files.</strong></p>
 <p>I built this for my own ComfyUI / Forge Neo workflow and it grew into something worth sharing. It's one HTML file. Open it in Edge or Chrome on Windows, point it at your folder of <code>.txt</code> wildcard files, and design prompts with a live preview. No install, no server, no account, and it cannot upload anything (the page blocks every network request).</p>
 <h2>Why</h2>
@@ -11,6 +11,7 @@
 <li>Template editor with <code>__file__</code> tags: autocomplete, drag-and-drop, green/red validity, and a peek button that shows a file's lines and swaps the tag for one you choose</li>
 <li>Live sample with every nested wildcard resolved. Open any part to see which sub-wildcard supplied what</li>
 <li>Click a part to re-roll just that part. Right-click to lock it, or pick an exact line from the file</li>
+<li>Fixed lines drop-downs: pick the exact line for any wildcard in the template and it stays put, even in batch exports</li>
 <li>Reuse one pick everywhere: <code>${hero=__names__}</code> then <code>${hero}</code> (great for names and text overlays), or <code>__names$hero__</code></li>
 <li>Optional weights (<code>3:: text</code>), inline choices <code>{a|b|c}</code>, and pick-several <code>{2-3$$, $$a|b|c}</code></li>
 <li>Model profiles with a token gauge (recommended length vs. hard cutoff), calibration, editable limits, and a "check length over 200 rolls" report</li>
@@ -34,6 +35,7 @@
 <p>The included guide covers everything in about five minutes.</p>
 <h2>Version history</h2>
 <ul>
+<li><strong>v3.4:</strong> Fixed lines strip: a drop-down for each wildcard in the template to choose Random or pin a specific line; reused <code>${name}</code> values follow; batches can keep chosen lines; chosen lines survive edits to the wildcard file.</li>
 <li><strong>v3.3:</strong> Folder view for the wildcard list (counts, collapse/expand all); faster Library search that stops at 500 matches and copes with 90,000+ files; model presets (model, prefix, suffix, negative and weight options saved by name, loaded automatically per model, exportable).</li>
 <li><strong>v3.2:</strong> Very large folders (90,000+ files) stay fast: the list draws 1,000 rows at a time with a filter, and the focus auto-rescan no longer reads every file.</li>
 <li><strong>v3.1:</strong> MOSS-Image profile updated to its 4,000-token limit.</li>

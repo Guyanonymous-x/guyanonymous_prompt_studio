@@ -1,4 +1,4 @@
-# Guyanonymous' Prompt Studio v3.3
+# Guyanonymous' Prompt Studio v3.4
 
 **A single-file, fully offline prompt builder for wildcard files.**
 
@@ -14,6 +14,7 @@ Wildcard folders get huge and nested, and it's hard to know what a template will
 - Template editor with `__file__` tags: autocomplete, drag-and-drop, green/red validity, and a peek button that shows a file's lines and swaps the tag for one you choose
 - Live sample with every nested wildcard resolved. Open any part to see which sub-wildcard supplied what
 - Click a part to re-roll just that part. Right-click to lock it, or pick an exact line from the file
+- Fixed lines drop-downs: pick the exact line for any wildcard in the template and it stays put, even in batch exports
 - Reuse one pick everywhere: `${hero=__names__}` then `${hero}` (great for names and text overlays), or `__names$hero__`
 - Optional weights (`3:: text`), inline choices `{a|b|c}`, and pick-several `{2-3$$, $$a|b|c}`
 - Model profiles with a token gauge (recommended length vs. hard cutoff), calibration, editable limits, and a "check length over 200 rolls" report
@@ -38,6 +39,7 @@ The included guide covers everything in about five minutes.
 
 ## Version history
 
+- **v3.4:** Fixed lines strip: a drop-down for each wildcard in the template to choose Random or pin a specific line; reused `${name}` values follow; batches can keep chosen lines; chosen lines survive edits to the wildcard file.
 - **v3.3:** Folder view for the wildcard list (counts, collapse/expand all); faster Library search that stops at 500 matches and copes with 90,000+ files; model presets (model, prefix, suffix, negative and weight options saved by name, loaded automatically per model, exportable).
 - **v3.2:** Very large folders (90,000+ files) stay fast: the list draws 1,000 rows at a time with a filter, and the focus auto-rescan no longer reads every file.
 - **v3.1:** MOSS-Image profile updated to its 4,000-token limit.

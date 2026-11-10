@@ -4,9 +4,9 @@ A single-file, fully offline prompt builder for wildcard text files.
 
 **[Launch the app online](https://guyanonymous-x.github.io/guyanonymous_prompt_studio/)** (runs in your browser; nothing is uploaded)
 
-Current version: **v3.3**
+Current version: **v3.4**
 
-**Contents:** [Introduction](#introduction) · [What's New in v3.3](#whats-new-in-v33) · [Features](#features) · [Getting Started](#getting-started) · [Using the Features](#using-the-features) · [Full Changelog](#full-changelog) · [License](#license)
+**Contents:** [Introduction](#introduction) · [What's New in v3.4](#whats-new-in-v34) · [Features](#features) · [Getting Started](#getting-started) · [Using the Features](#using-the-features) · [Full Changelog](#full-changelog) · [License](#license)
 
 ## Introduction
 
@@ -16,7 +16,19 @@ It is for people who keep wildcard folders for tools such as ComfyUI or Forge / 
 
 **Privacy.** The page blocks every network request (a content-security rule in the file), so nothing can be uploaded. It can only read and write folders you choose.
 
-## What's New in v3.3
+## What's New in v3.4
+
+Changes since v3.3:
+
+- **Fixed lines strip.** Above the sample, every wildcard written in the template gets its own drop-down. It starts on "🎲 Random" (showing the current line); pick a line and it is pinned (📌) so **Roll new sample** keeps it. Pick Random to let it change again. The **≡** button next to each drop-down opens the searchable line list. A wildcard that appears twice gets two drop-downs, marked (2).
+- **Reused values follow.** For a remembered value such as `__animal$pet__`, the drop-down sets the line once and every `${pet}` that reuses it changes too.
+- **Keep my chosen lines in batches.** A new tick box in the batch card keeps every pinned line the same in each prompt while everything else stays random. Off by default.
+- **Chosen lines remember their text.** If lines are added or moved in a wildcard file, a chosen line is still found. If the line is deleted, that wildcard goes back to random.
+- The page title, header badge and JSON export name now read v3.4.
+
+For reference, the previous release, **v3.3**, is described below and in the [Full Changelog](#full-changelog).
+
+## What's New in v3.3 (previous release)
 
 Changes since v3.2:
 
@@ -129,6 +141,7 @@ ${hero=__names__}A portrait of ${hero}, holding a sign that reads "${hero}".
 - **Small arrow** on a part opens or closes it to show the wildcards inside it (for example `__body__` opens into `__head__`, `__torso__`, `__limbs__`). **Expand all**, **Collapse all** and **Levels** control this in bulk.
 - **Colour by parent** (Output options): parts called by the same wildcard share a colour. Off = colour by depth. **Colour-code wildcard results** switches the colouring on or off.
 - **Right-click** a part for: **Re-roll this part**, **Lock this part** (Roll new sample keeps it), **Choose a line…** (pick the exact line from a filterable list), **Go back to a random line**, and **Copy this text**. **Esc** closes the menu.
+- **Fixed lines strip** lists each wildcard written in the template with a drop-down: **🎲 Random** or a chosen line that stays when you roll. **≡** opens the searchable list. A remembered value's drop-down changes every `${name}` that reuses it.
 - **Remembered values strip** shows each `${name}` with buttons to re-roll, lock or choose its line.
 - **Unlock all** releases every lock and chosen line.
 - **Seed:** the same seed and template give the same sample. Editing text keeps the other choices stable.
@@ -159,7 +172,7 @@ Checkboxes in the **Output options** card: **Single paragraph**, **Tidy spacing 
 
 - **Save template** (Ctrl+S), **Save as…** (Ctrl+Shift+S), **Open** (Ctrl+O) and **New** (opens a new tab).
 - **Save sample .txt** saves the evaluated sample as a single paragraph.
-- **Batch of random prompts (up to 1,000):** set **How many**, optionally **Skip duplicates**, **Reproducible** (derive each prompt's seed from the Seed box) and **Write each seed before its prompt** (`seed | prompt`). Choose the **File format**:
+- **Batch of random prompts (up to 1,000):** set **How many**, optionally **Skip duplicates**, **Keep my chosen lines** (pinned lines stay the same in every prompt), **Reproducible** (derive each prompt's seed from the Seed box) and **Write each seed before its prompt** (`seed | prompt`). Choose the **File format**:
   - **Text**: one prompt per line. Optionally a matching `_negative` file with the same number of lines (when a negative prompt is set).
   - **CSV**: number, seed, prompt, negative, and the picks that made it.
   - **JSON**: the same, structured.
@@ -240,6 +253,15 @@ The **?** button in the header opens the in-app "Syntax and shortcuts" help.
 ## Full Changelog
 
 Newest first. Earlier versions were called Offline Wildcard Prompt Studio. Dates are the commit dates in this repository's git history. The same notes, oldest first, are in [CHANGELOG.md](CHANGELOG.md).
+
+### v3.4: fixed lines drop-downs (2026-11-10)
+
+**Added**
+- Fixed lines strip above the sample: a drop-down per wildcard in the template to pick Random or a specific line that stays when rolling, with a search button.
+- Batch card: "Keep my chosen lines" tick box.
+
+**Changed**
+- Chosen lines are remembered by their text, so they survive lines being added or moved in the wildcard file.
 
 ### v3.3: folder view, faster search, presets (2026-11-09)
 

@@ -1,6 +1,6 @@
 # Guyanonymous' Prompt Studio: Changelog
 
-From v1 to v3.3 (earlier versions were called Offline Wildcard Prompt Studio). Newest changes are at the bottom of each section's list; versions run oldest to newest.
+From v1 to v3.4 (earlier versions were called Offline Wildcard Prompt Studio). Newest changes are at the bottom of each section's list; versions run oldest to newest.
 
 ---
 
@@ -165,6 +165,15 @@ The first full rewrite of the original Gemini-generated prototype, keeping its l
 
 **Changed**
 - Library search reads files in parallel, shows progress, stops at 500 matches, and does not keep files in memory for libraries over 20,000 files. Health check reads in parallel.
+
+## v3.4: fixed lines drop-downs
+
+**Added**
+- Fixed lines strip above the sample: a drop-down per wildcard in the template to pick Random or a specific line that stays when rolling, with a search button. A remembered value's drop-down changes every `${name}` that reuses it.
+- Batch card: "Keep my chosen lines" tick box (off by default).
+
+**Changed**
+- Chosen lines are remembered by their text, so they survive lines being added or moved in the wildcard file. A deleted line goes back to random.
 
 ---
 
